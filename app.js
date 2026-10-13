@@ -159,7 +159,7 @@
   LYR.labels = lazy(() => L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, pane: 'labels', opacity: 0.9 }));
   LYR.rings = lazy(() => L.layerGroup([10, 25, 50].map((km) => {
     const c = L.circle(PG, { radius: km * 1000, pane: 'ring', color: '#ffffff', weight: 1, dashArray: '2 6', fill: false, interactive: false });
-    const lab = L.marker([PG[0] + km / 111.2, PG[1]], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="lbl ref" style="position:relative;left:-14px;top:-8px">${km} km</span>` }) });
+    const lab = L.marker([PG[0] + km / 111.2, PG[1]], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="lbl ref" style="position:relative;left:-14px;top:-8px;white-space:nowrap">${km} km</span>` }) });
     return L.layerGroup([c, lab]);
   })));
   LYR.refpts = lazy(() => L.layerGroup([
@@ -700,20 +700,20 @@
   const sw = (bg, extra) => `<span class="sw" style="background:${bg};${extra || ''}"></span>`;
   const DEF = {
     'lyr-sites': [
-      ['rcorr', true, 'Clarity-screened sites R1–R13', 'Each site: mangrove ▲, seagrass ■, coral ● nodes inside a dashed site circle', sw('#ffd23f', 'height:3px'), `<span>${sw(C.mangrove)}mangrove</span><span>${sw(C.seagrass)}seagrass</span><span>${sw(C.coral)}coral</span><br><span>${sw('#ffd23f')}central PHMR</span><span>${sw('#ffb36b')}inshore</span><span>${sw('#7ee0ff')}Sapodilla</span><span>${sw('#c3a6ff')}north lagoon</span>`],
+      ['rcorr', false, 'Clarity-screened sites R1–R13', 'Each site: mangrove ▲, seagrass ■, coral ● nodes inside a dashed site circle', sw('#ffd23f', 'height:3px'), `<span>${sw(C.mangrove)}mangrove</span><span>${sw(C.seagrass)}seagrass</span><span>${sw(C.coral)}coral</span><br><span>${sw('#ffd23f')}central PHMR</span><span>${sw('#ffb36b')}inshore</span><span>${sw('#7ee0ff')}Sapodilla</span><span>${sw('#c3a6ff')}north lagoon</span>`],
       ['corr1', false, 'Original corridors C1–C11', 'First scouting pass, before clarity screening', sw('#fff', 'height:3px')],
-      ['mcand', true, 'Mangrove plot candidates M1–M12', 'Apparent 2015→2025 loss patches', sw('#ff3b30', 'transform:rotate(45deg);width:11px;height:11px'), `<span>${sw('#ff3b30')}priority</span><span>${sw('#ffcc00')}verify: ecotone</span><span>${sw('#c9a7ff')}verify: tenure</span><span>${sw('#8fa6bd')}remote</span>`],
-      ['scand', true, 'Seagrass plot candidates S1–S10', 'Bare patches within seagrass', sw('transparent', 'border:2px solid #fff;transform:rotate(45deg);width:10px;height:10px'), `<span>${sw('#00e5ff')}no-take zone</span><span>${sw('#fff')}general use</span>`]
+      ['mcand', false, 'Mangrove plot candidates M1–M12', 'Apparent 2015→2025 loss patches', sw('#ff3b30', 'transform:rotate(45deg);width:11px;height:11px'), `<span>${sw('#ff3b30')}priority</span><span>${sw('#ffcc00')}verify: ecotone</span><span>${sw('#c9a7ff')}verify: tenure</span><span>${sw('#8fa6bd')}remote</span>`],
+      ['scand', false, 'Seagrass plot candidates S1–S10', 'Bare patches within seagrass', sw('transparent', 'border:2px solid #fff;transform:rotate(45deg);width:10px;height:10px'), `<span>${sw('#00e5ff')}no-take zone</span><span>${sw('#fff')}general use</span>`]
     ],
     'lyr-hab': [
-      ['seagrass', true, 'Seagrass', 'Allen Coral Atlas benthic', sw(C.seagrass)],
-      ['coral', true, 'Coral/Algae hard bottom', 'Allen Coral Atlas benthic', sw(C.coral)],
+      ['seagrass', false, 'Seagrass', 'Allen Coral Atlas benthic', sw(C.seagrass)],
+      ['coral', false, 'Coral/Algae hard bottom', 'Allen Coral Atlas benthic', sw(C.coral)],
       ['conn', false, 'Reef–mangrove connectivity', 'Coral/Algae coloured by distance to nearest mangrove', sw(`linear-gradient(90deg,${C.tight},${C.inter},${C.loose},${C.disc})`), `<span>${sw(C.tight)}&lt;1 km</span><span>${sw(C.inter)}1–5</span><span>${sw(C.loose)}5–15</span><span>${sw(C.disc)}&gt;15 km</span>`],
-      ['mang', true, 'Mangrove extent 2020', 'Global Mangrove Watch v3', sw(C.mangrove)],
+      ['mang', false, 'Mangrove extent 2020', 'Global Mangrove Watch v3', sw(C.mangrove)],
       ['mchange', false, 'Mangrove change 2010→2020', 'GMW v3: loss and gain', sw(`linear-gradient(90deg,${C.mloss} 50%,${C.mgain} 50%)`), `<span>${sw(C.mloss)}loss</span><span>${sw(C.mgain)}gain</span>`]
     ],
     'lyr-water': [
-      ['rivers', true, 'Rivers, creeks and mouths', 'OpenStreetMap · ▼ = mouth', sw('#6ec6ff', 'height:3px')],
+      ['rivers', false, 'Rivers, creeks and mouths', 'OpenStreetMap · ▼ = mouth', sw('#6ec6ff', 'height:3px')],
       ['turb', false, 'Median turbidity (sea)', 'Sentinel-2 2020–25, 120 m · uses season and opacity below', sw('linear-gradient(90deg,#10408c,#28b9c8,#f0dc5a,#f59628,#6e3214)')],
       ['freq', false, 'How often it’s murky (sea)', 'Share of clear-sky days above 5 FNU · uses season and opacity below', sw('linear-gradient(90deg,rgba(255,230,150,.4),#f06420,#78002a)')]
     ],
@@ -722,24 +722,24 @@
       ['iso', false, 'Depth contours', '2, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000 m · hover for depth', sw('transparent', 'border-top:2px solid #fff;height:6px;border-radius:0')]
     ],
     'lyr-agrra': [
-      ['agh', true, 'Coral health surveys', 'Bleaching and disease, 2017–2026 · colour = latest survey', sw('#fc8d59', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #fff'), `<span id="hlLegend"></span>`],
-      ['agb', true, 'Benthic surveys (Reef Health Index)', 'Live coral, macroalgae, RHI · 2011–2021', sw('#f2d33a', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #0b1724'), Object.entries({ 1: 'critical', 2: 'poor', 3: 'fair', 4: 'good', 5: 'very good' }).map(([k, v]) => `<span>${sw(RHI_COL[k], 'border-radius:50%')}${v}</span>`).join('') + `<span>${sw('#9aa7b4', 'border-radius:50%')}fish-only survey</span>`],
+      ['agh', false, 'Coral health surveys', 'Bleaching and disease, 2017–2026 · colour = latest survey', sw('#fc8d59', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #fff'), `<span id="hlLegend"></span>`],
+      ['agb', false, 'Benthic surveys (Reef Health Index)', 'Live coral, macroalgae, RHI · 2011–2021', sw('#f2d33a', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #0b1724'), Object.entries({ 1: 'critical', 2: 'poor', 3: 'fair', 4: 'good', 5: 'very good' }).map(([k, v]) => `<span>${sw(RHI_COL[k], 'border-radius:50%')}${v}</span>`).join('') + `<span>${sw('#9aa7b4', 'border-radius:50%')}fish-only survey</span>`],
       ['ag23', false, '2023 survey sites (results pending)', 'Site descriptions only', sw('transparent', 'border-radius:50%;width:10px;height:10px;border:2px dashed #fff')]
     ],
     'lyr-prot': [
-      ['mpa', true, 'Marine reserves', 'Port Honduras, Sapodilla Cayes, Gladden Spit, HPMAs, etc.', sw('transparent', `border:2px solid ${C.accent}`)],
-      ['notake', true, 'PHMR replenishment (no-take) zones', 'Four WDPA sub-polygons of Port Honduras MR', sw('rgba(255,255,255,.25)', 'border:2px dashed #fff')],
+      ['mpa', false, 'Marine reserves', 'Port Honduras, Sapodilla Cayes, Gladden Spit, HPMAs, etc.', sw('transparent', `border:2px solid ${C.accent}`)],
+      ['notake', false, 'PHMR replenishment (no-take) zones', 'Four WDPA sub-polygons of Port Honduras MR', sw('rgba(255,255,255,.25)', 'border:2px dashed #fff')],
       ['terr', false, 'Terrestrial protected areas', 'Paynes Creek NP, TIDE Private Reserve, Sarstoon-Temash…', sw('transparent', 'border:2px dashed #ffc83d')],
       ['ramsar', false, 'Ramsar sites', '', sw('transparent', 'border:2px dotted #7fe0c4')],
       ['whs', false, 'Belize Barrier Reef WHS', 'World Heritage Site serial property', sw('transparent', 'border:2px dashed #b28dff')]
     ],
     'lyr-ref': [
       ['refpts', true, 'Reference points', 'Punta Gorda and Abalone Caye ranger station', sw('#ffd23f', 'border-radius:50%;width:11px;height:11px')],
-      ['rings', false, 'Distance from Punta Gorda', '10 / 25 / 50 km rings', sw('transparent', 'border:1px dashed #fff;border-radius:50%;width:12px;height:12px')],
-      ['labels', true, 'Place names', 'Esri reference overlay', sw('transparent', 'border:1px solid #888')]
+      ['rings', true, 'Distance from Punta Gorda', '10 / 25 / 50 km rings', sw('transparent', 'border:1px dashed #fff;border-radius:50%;width:12px;height:12px')],
+      ['labels', false, 'Place names', 'Esri reference overlay', sw('transparent', 'border:1px solid #888')]
     ]
   };
-  const saved = store.get('seastrong_layers_v1', {});
+  const saved = store.get('seastrong_layers_v2', {});
   const cbByKey = {};
   Object.entries(DEF).forEach(([el, rows]) => {
     const host = document.getElementById(el);
@@ -749,7 +749,7 @@
       wrap.innerHTML = `<label class="row"><input type="checkbox" ${isOn ? 'checked' : ''}>${swatch}<span class="t">${title}${sub ? `<small>${sub}</small>` : ''}</span></label>${legend ? `<div class="sub">${legend}</div>` : ''}`;
       const cb = wrap.querySelector('input');
       cbByKey[key] = cb;
-      const apply = () => { const l = LYR[key](); if (cb.checked) l.addTo(map); else map.removeLayer(l); saved[key] = cb.checked; store.set('seastrong_layers_v1', saved); if (key === 'turb' || key === 'freq') updateClarityControls(); };
+      const apply = () => { const l = LYR[key](); if (cb.checked) l.addTo(map); else map.removeLayer(l); saved[key] = cb.checked; store.set('seastrong_layers_v2', saved); if (key === 'turb' || key === 'freq') updateClarityControls(); };
       cb.addEventListener('change', apply);
       if (isOn) LYR[key]().addTo(map);
       host.appendChild(wrap);
