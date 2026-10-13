@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEASTRONG Belize Site Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#0b1724; --panel:#0f1f30; --panel2:#132840; --line:#22405f; --text:#e6eef6; --muted:#8fa6bd;
+  --accent:#33d6ff; --accent2:#ffd23f; --danger:#ff5a5f;
+  --mangrove:#d33cff; --mloss:#ff2a2a; --mgain:#ffe600; --seagrass:#3ddc6a; --coral:#ff8c1a;
+  --tight:#ff4040; --inter:#ffb000; --loose:#4fc3f7; --disc:#b9b9f2;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:grid;grid-template-columns:360px 1fr;height:100%}
+#side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#side header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+#side h1{font-size:16px;margin:0 0 2px;letter-spacing:.2px}
+#side header p{margin:0;color:var(--muted);font-size:12px}
+nav.tabs{display:flex;border-bottom:1px solid var(--line)}
+nav.tabs button{flex:1;background:none;border:0;color:var(--muted);padding:9px 4px;font:inherit;font-size:13px;cursor:pointer;border-bottom:2px solid transparent}
+nav.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+nav.tabs .count{display:inline-block;min-width:16px;padding:0 4px;border-radius:8px;background:var(--accent2);color:#111;font-size:11px;margin-left:3px}
+.pane{display:none;overflow:auto;flex:1;padding:8px 14px 18px}
+.pane.on{display:block}
+h2{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 6px}
+label.row{display:flex;align-items:center;gap:8px;padding:4px 2px;cursor:pointer;border-radius:4px}
+label.row:hover{background:var(--panel2)}
+label.row input{accent-color:var(--accent);margin:0}
+label.row .t{flex:1}
+label.row small{display:block;color:var(--muted);font-size:11px}
+.sw{width:16px;height:12px;border-radius:2px;flex:none;display:inline-block}
+.sub{margin:0 0 4px 26px;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--muted)}
+.sub span{display:inline-flex;align-items:center;gap:4px}
+.sub .sw{width:10px;height:10px}
+.slider{display:flex;align-items:center;gap:8px;margin:4px 2px 0 26px;font-size:12px;color:var(--muted)}
+.slider input{flex:1;accent-color:var(--accent)}
+.bm{display:flex;gap:4px;flex-wrap:wrap}
+.bm button,.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:5px;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer}
+.bm button.on{border-color:var(--accent);color:var(--accent)}
+.btn:hover,.bm button:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#04202b;border-color:var(--accent);font-weight:600}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.chips button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:12px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}
+.chips button.on{border-color:var(--accent);color:var(--text);background:var(--panel2)}
+input.search,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:6px 8px;font:inherit}
+.site{display:flex;gap:8px;align-items:flex-start;padding:7px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.site:hover{background:var(--panel2)}
+.site .id{font-weight:700;min-width:34px;color:var(--accent2)}
+.site .nm{flex:1}
+.site .nm small{display:block;color:var(--muted);font-size:11px}
+.star{background:none;border:0;color:var(--muted);font-size:17px;cursor:pointer;line-height:1;padding:0 2px}
+.star.on{color:var(--accent2)}
+.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid var(--line);color:var(--muted);margin-top:2px}
+.badge.nt{border-color:#fff;color:#fff}
+.badge.un{border-color:var(--danger);color:var(--danger)}
+.sl{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px;margin:8px 0}
+.sl textarea{width:100%;min-height:44px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12px;margin-top:6px;resize:vertical}
+.fig{display:block;margin:10px 0;border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;background:var(--panel2)}
+.fig img{width:100%;display:block}
+.fig div{padding:6px 8px;font-size:12px;color:var(--muted)}
+.about p,.about li{color:#c6d4e2;font-size:13px}
+.about ul{padding-left:18px}
+.about a{color:var(--accent)}
+.note{font-size:12px;color:var(--muted);background:var(--panel2);border-left:3px solid var(--accent2);padding:6px 8px;border-radius:3px;margin:8px 0}
+#map{height:100%;background:#0a1a2a}
+.tlegend{margin:6px 0 0 26px;font-size:11px;color:var(--muted)}
+.tlegend .bar{height:10px;border-radius:2px;margin:3px 0}
+.tlegend .ticks{display:flex;justify-content:space-between}
+.live{margin:2px 0 0 26px;display:none}
+.live.on{display:block}
+.live select{margin-bottom:6px}
+.liverow{display:flex;gap:4px;align-items:center}
+.liverow input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:4px 6px;font:inherit;color-scheme:dark}
+.clar{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid var(--line);margin:2px 0 0 4px;color:#dfe8f1}
+.clar i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.mchart{display:flex;align-items:flex-end;gap:2px;height:46px;margin-top:4px}
+.mchart div{flex:1;border-radius:2px 2px 0 0;position:relative;min-height:2px}
+.mchart div.na{background:repeating-linear-gradient(45deg,#2a3f55 0 3px,transparent 3px 6px)!important;height:46px!important;opacity:.6}
+.mlab{display:flex;gap:2px;font-size:9px;color:var(--muted)}
+.mlab span{flex:1;text-align:center}
+.mlab span.v{color:var(--accent2);font-weight:700}
+.ctab{border-collapse:collapse;font-size:12px;margin-top:2px}
+.ctab td,.ctab th{padding:1px 6px 1px 0;text-align:left}
+.ctab th{color:var(--muted);font-weight:500;font-size:10px}
+#coord{position:absolute;right:10px;bottom:24px;z-index:800;background:rgba(11,23,36,.85);color:var(--text);font:12px ui-monospace,Consolas,monospace;padding:4px 8px;border-radius:4px;pointer-events:none}
+#mapwrap{position:relative;min-height:0}
+#toggleSide{display:none}
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+#lightbox img{max-width:100%;max-height:100%;box-shadow:0 0 30px #000}
+/* Leaflet popup theming */
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+.leaflet-popup-content{margin:12px 14px;font-size:13px;min-width:230px}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+.pp h3{margin:0 0 2px;font-size:15px}
+.pp .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-top:7px}
+.pp .v{font-size:13px}
+.pp .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pp .acts a,.pp .acts button{font-size:12px;color:var(--accent);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:3px 7px;text-decoration:none;cursor:pointer;font-family:inherit}
+.lbl{background:rgba(11,23,36,.82);border:0;color:var(--accent2);font-weight:700;font-size:11px;padding:1px 5px;border-radius:3px;box-shadow:none}
+.lbl:before{display:none}
+.lbl.m{color:#ffb3b3}.lbl.s{color:#c8fff0}.lbl.ref{color:#fff;font-weight:600}
+.leaflet-tooltip.lbl{white-space:nowrap}
+.leaflet-control-scale-line{background:rgba(255,255,255,.85)}
+@media (max-width:760px){
+  #app{grid-template-columns:1fr;grid-template-rows:1fr}
+  #side{position:fixed;left:0;right:0;bottom:0;height:62%;z-index:1500;transform:translateY(100%);transition:transform .25s;border-right:0;border-top:1px solid var(--line);border-radius:12px 12px 0 0}
+  #side.open{transform:none}
+  #toggleSide{display:block;position:absolute;left:10px;bottom:24px;z-index:900}
+  #coord{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <header>
+      <h1>SEASTRONG · Southern Belize seascape</h1>
+      <p>Candidate restoration and corridor sites from the desk-based site scouting, over mangrove, seagrass, reef and protected-area layers.</p>
+    </header>
+    <nav class="tabs">
+      <button data-tab="layers" class="on">Layers</button>
+      <button data-tab="sites">Sites</button>
+      <button data-tab="short">Shortlist<span class="count" id="slCount" hidden>0</span></button>
+      <button data-tab="figs">Figures</button>
+      <button data-tab="about">About</button>
+    </nav>
+
+    <section class="pane on" id="tab-layers">
+      <h2>Suggested project sites</h2>
+      <div id="lyr-sites"></div>
+      <h2>Habitat</h2>
+      <div id="lyr-hab"></div>
+      <div class="slider">Habitat opacity <input type="range" id="habOp" min="0.1" max="1" step="0.05" value="0.7"></div>
+      <h2>Water clarity &amp; runoff</h2>
+      <div id="lyr-water"></div>
+      <div class="chips" id="seasonChips" style="margin-left:26px">
+        <button data-s="all">All year</button>
+        <button data-s="dry">Dry Feb–May</button>
+        <button data-s="wet">Wet Jun–Oct</button>
+        <button data-s="nov" class="on">Nov–Jan</button>
+      </div>
+      <div class="slider">Clarity opacity <input type="range" id="turbOp" min="0.2" max="1" step="0.05" value="0.8"></div>
+      <div id="turbLegend" class="tlegend"></div>
+      <h2>Live satellite imagery (NASA GIBS)</h2>
+      <label class="row"><input type="checkbox" id="liveOn"><span class="sw" style="background:linear-gradient(135deg,#2d6ca8,#c9b27a)"></span><span class="t">Daily imagery for a chosen date<small>Watch plumes after rain, or check before a dive</small></span></label>
+      <div id="livePanel" class="live">
+        <select id="liveProd"></select>
+        <div class="liverow"><button class="btn" id="livePrev" title="Previous day">◀</button><input type="date" id="liveDate"><button class="btn" id="liveNext" title="Next day">▶</button><button class="btn" id="liveLatest">Latest</button></div>
+        <div class="slider" style="margin-left:0">Opacity <input type="range" id="liveOp" min="0.2" max="1" step="0.05" value="1"></div>
+        <div class="note" id="liveNote" style="margin:4px 0 0"></div>
+      </div>
+      <h2>Depth</h2>
+      <div id="lyr-depth"></div>
+      <p class="note" style="margin:6px 0 0 26px">A regional grid (~460 m cells). It shows the lagoon, shelf edge and channels, not reef tops. Use the in-situ AGRRA depths and soundings in the field for dive planning.</p>
+      <h2>Reef monitoring (AGRRA)</h2>
+      <div id="lyr-agrra"></div>
+      <div class="chips" id="healthChips" style="margin-left:26px">
+        <span style="font-size:11px;color:var(--muted);align-self:center">Colour coral health by</span>
+        <button data-m="bleach">Bleaching</button>
+        <button data-m="sctld">SCTLD</button>
+      </div>
+      <div class="note" id="agStatus" style="margin:6px 0 0 26px">Loading AGRRA data…</div>
+      <h2>Protection &amp; management</h2>
+      <div id="lyr-prot"></div>
+      <h2>Reference</h2>
+      <div id="lyr-ref"></div>
+      <h2>Basemap</h2>
+      <div class="bm" id="bm"></div>
+      <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn" id="zAll">Whole study area</button>
+        <button class="btn" id="zPH">Port Honduras</button>
+        <button class="btn" id="zOff">Offshore cayes</button>
+        <button class="btn" id="zMang">Mangrove plots</button>
+        <button class="btn" id="zCentral">Central PHMR sites</button>
+      </div>
+    </section>
+
+    <section class="pane" id="tab-sites">
+      <input class="search" id="q" placeholder="Search name, reserve, assessment…">
+      <div class="chips" id="typeChips">
+        <button data-t="all" class="on">All</button>
+        <button data-t="R">Clarity-screened R1–R13</button>
+        <button data-t="C">Original C1–C11</button>
+        <button data-t="M">Mangrove plots</button>
+        <button data-t="S">Seagrass plots</button>
+      </div>
+      <select id="protSel">
+        <option value="">Any protection status</option>
+        <option value="notake">No-take / replenishment zone</option>
+        <option value="mpa">Inside a marine reserve (any zone)</option>
+        <option value="terr">Terrestrial protected area</option>
+        <option value="none">Outside protected areas</option>
+      </select>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <select id="clarSel" style="flex:1">
+          <option value="">Any water clarity</option>
+          <option value="2">Usually clear (median &lt; 2 FNU)</option>
+          <option value="5">Not usually turbid (median &lt; 5 FNU)</option>
+          <option value="turbid">Often turbid (median ≥ 5 FNU)</option>
+        </select>
+        <select id="sortSel" style="flex:1">
+          <option value="id">Sort by ID</option>
+          <option value="score">Sort by suitability score</option>
+          <option value="clar">Sort clearest first</option>
+          <option value="pg">Sort nearest Punta Gorda</option>
+        </select>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0">Clarity filter uses the season selected in Layers → Water clarity.</p>
+      <div id="siteList" style="margin-top:6px"></div>
+    </section>
+
+    <section class="pane" id="tab-short">
+      <p class="note">Star sites on the map or in the list to build a shortlist for the site register. Notes are kept in this browser only. Export the CSV to paste into the <em>Site register</em> tab of the field workbook.</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn primary" id="expCsv">Export CSV</button>
+        <button class="btn" id="expGeo">Export GeoJSON</button>
+        <button class="btn" id="zShort">Zoom to shortlist</button>
+        <button class="btn" id="clrShort">Clear</button>
+      </div>
+      <div id="shortList"></div>
+    </section>
+
+    <section class="pane" id="tab-figs">
+      <p class="note">Static figures from the original scouting analysis (GMW v4.1, Allen Coral Atlas, WDPA). Click to enlarge.</p>
+      <div id="figList"></div>
+    </section>
+
+    <section class="pane about" id="tab-about">
+      <h2>What this map shows</h2>
+      <p><b>Corridors C1–C11</b> are mangrove → seagrass → reef transects chosen to sample connected habitat across a protection gradient (no-take, general use, unprotected) and a connectivity gradient (reef distance to nearest mangrove: tight &lt;1 km, intermediate 1–5 km, loose 5–15 km).</p>
+      <p><b>Mangrove plot candidates M1–M12</b> are patches mapped as mangrove in 2015 but not in 2025 (Global Mangrove Watch v4.1). The assessment column flags which look like real seaward-fringe loss (priority) versus probable classification shifts at the landward ecotone (verify on the ground).</p>
+      <p><b>Seagrass plot candidates S1–S10</b> are bare patches inside continuous seagrass (Allen Coral Atlas), ranked by distance from Abalone Caye ranger station. <i>sg_frac_ring</i> is the fraction of the surrounding ring classed as seagrass, a proxy for how enclosed the gap is.</p>
+      <h2>Clarity-screened sites R1–R13: how they were picked</h2>
+      <p><b>Candidates.</b> Coral nodes on a 200 m grid inside every Allen Coral Atlas Coral/Algae polygon (2,644 points). For each one: the nearest mangrove (GMW v3 2020, plus the v4.1 scouting points where v3 has no mangrove, e.g. the Sapodilla and outer cayes), and a seagrass node picked from a 100 m seagrass grid between them. The seagrass pick trades off staying on the reef–mangrove path against the clearest available water. Within a site, the three nodes are at least 250 m apart so each shows separately when zoomed in, and the mangrove is within 5 km of the coral node so each site works as one compact area. No node is within 1.5 km of another site’s nodes.</p>
+      <p><b>Screen.</b> Coral-node median turbidity ≤ 2 FNU and seagrass-node median ≤ 2.5 FNU (all-year, Sentinel-2 2020–25).</p>
+      <p><b>Score (0–1).</b> Water clarity 40% (median turbidity and the share of clear-sky days above 5 FNU, averaged over the coral and seagrass nodes) · habitat extent 20% (coral within 400 m, seagrass within 300 m, mangrove within 500 m) · connectivity 15% (tight &lt;1 km scores highest) · access from Punta Gorda 15% (≤15 km best, ≥60 km zero) · distance from river mouths 10%.</p>
+      <p><b>Selection.</b> Highest-scoring sites, filled by protection class so the set keeps the no-take / general-use / unprotected contrast. Within 50 km of Punta Gorda: 3 PHMR no-take (R2, R4, R6), 4 PHMR general use (R1, R3, R5, R7) and 2 unprotected (R8, R9). Further out: 2 at the Sapodilla Cayes (R10, R11) and 2 unprotected in the northern lagoon (R12, R13, better run from Placencia). The clear central PHMR water is almost all inside the reserve. Unprotected controls there would share mangrove stands with the no-take sites, so the clear-water unprotected sites are in the northern lagoon, and the ones near Punta Gorda are only moderately clear.</p>
+      <p><b>Effect on the first pass.</b> Five original corridors fail the clarity screen: C1 (coral 2.1 / seagrass 2.4 FNU), C2 (2.3 / 2.5), C5 (3.0 / 3.5), C6 (3.6 / 4.4) and C7 (2.8 / 2.9). C3, C4, C8, C9, C10 and C11 pass. C3 and C4 are in the same Snake Cayes area as R2 and R4. Turbid inshore reefs aren’t worthless scientifically (their corals are adapted to sediment and may be useful as a contrast or refuge), but they’re poor places for repeated diving work.</p>
+      <p><b>Not yet known from desk data:</b> depth at each node, substrate firmness, current, tenure of caye mangroves, and boat landing access. Check these on the pre-visit.</p>
+      <h2>Water clarity layer: how it was made</h2>
+      <p>Turbidity (FNU) from 1,200 Sentinel-2 L2A scenes, Jan 2020–Dec 2025 (447 usable acquisition dates), Microsoft Planetary Computer. Per scene: Dogliotti et al. (2015) single-band algorithm, red 665 nm switching to NIR 865 nm in turbid water; sun glint and aerosol residual removed by subtracting SWIR (2190 nm) reflectance; observations with SWIR &gt; 0.02 discarded as glint/haze (~48% of clear-sky pixel observations); clouds, shadows and cirrus masked with the scene classification and buffered 240 m; then a per-date dark-water correction scaling the clearest 10% of offshore water to ~0.2 FNU (removes Mar–May smoke haze). Gridded at 120 m. Seasonal layers show the median of all clear-sky observations and the share of them above 5 FNU.</p>
+      <p><b>Reading the classes for diving:</b> &lt;1 FNU very clear; 1–2 clear; 2–5 moderate, reduced visibility; 5–10 turbid, poor visibility; &gt;10 plume water. These are relative guides, not visibility in metres. Take a Secchi disk on the pre-visit and log readings at each site; a few in-situ values would let us calibrate this layer to visibility.</p>
+      <h2>Caveats specific to water clarity</h2>
+      <ul>
+        <li><b>Clear-sky bias.</b> Optical satellites only see cloud-free days. In the wet season (25–34 usable dates per month vs 40–58 in the dry season) the days right after heavy rain, when plumes peak, are under-sampled. Treat wet-season values as a best case.</li>
+        <li><b>Bright bottom.</b> In clear water shallower than ~3 m, light reflected off sand raises the signal and reads as “turbid”. Shallow reef flats and sand on the barrier reef and Sapodilla Cayes are flagged grey and excluded. Smaller inshore shallows aren’t flagged: the seagrass gap sites (S1–S10) are bare sand, so their values may be inflated.</li>
+        <li><b>Dry season reads higher than wet</b> at many inshore sites. Part of this is probably real: Feb–May trade winds and winter cold fronts (“northers”) stir up sediment in shallow Port Honduras. Part may be leftover haze from the burning season. Check it against the monthly profiles and field observations.</li>
+        <li>Surface-weighted: the satellite sees roughly the top 1–3 m in turbid water. A clearer bottom layer (or a turbid near-bottom layer) can be missed.</li>
+        <li>At 120 m, sites inside narrow creeks or tight against mangrove fringes are sampled from the nearest open water (shown in each popup). M1 and M8 (Sarstoon-Temash) have no reliable water pixels.</li>
+        <li>A small step between Sentinel-2 tiles is visible around 16.3°N.</li>
+      </ul>
+      <h2>Depth and reef monitoring</h2>
+      <p><b>Bathymetry</b> comes from NOAA NCEI’s global DEM mosaic. Over southern Belize its cells are about 460 m, consistent with the GEBCO 15-arc-second grid. It shows the lagoon floor (half the lagoon cells are 17–36 m), the Snake Cayes and Sapodilla shoals, and the drop-off east of the barrier reef. It does <i>not</i> resolve reef tops, patch reefs or channels between cayes: a coral node on a 2 m reef flat can read 15–20 m. Treat popup depths as context only.</p>
+      <p><b>AGRRA</b> data come from the public layers behind the AGRRA Data Explorer. Benthic surveys (BaseBySite) give live coral and fleshy macroalgae cover and the Reef Health Index; public site-level results run 2011–2021. Coral health surveys (Coral Health Survey, 2017–2026) count colonies by condition: healthy, SCTLD, other disease, fully or partially bleached, pale, recently dead. Recent Placencia-area data are largely Fragments of Hope’s monthly bleaching surveys. The map loads them live from AGRRA each time it opens; no AGRRA data are stored in this site. Unapproved coral-health records are left out, and surveys with fewer than 10 colonies counted as qualitative. The data cover the map’s window (15.85–16.6°N, 89.25–87.95°W), so a few Guatemalan sites in the Bay of Amatique are included.</p>
+      <h2>Live imagery</h2>
+      <p>Pulled daily from NASA GIBS: MODIS Terra/Aqua and VIIRS true colour (250–375 m), PACE OCI true colour and chlorophyll-a (~1.2 km, daily), and Harmonized Landsat–Sentinel-2 (30 m, only on overpass days, often cloudy). PACE resolves lagoon-scale and Gulf of Honduras plumes (Sarstún, Motagua, Dulce) but not individual inshore cayes. PACE’s quantitative diffuse-attenuation product, Kd(490), isn’t on GIBS. It needs a free NASA Earthdata login to download and could be added as a climatology later.</p>
+      <h2>Data sources in this viewer</h2>
+      <ul>
+        <li>Candidate sites: <code>seastrong_belize_scouting.gpkg</code> (scouting analysis, Oct 2026).</li>
+        <li>Seagrass and Coral/Algae: Allen Coral Atlas benthic map (v2), downloaded via WFS for this area and simplified to ~10 m. Bare-sand, rubble and rock classes not shown. © Allen Coral Atlas Partnership, CC BY 4.0.</li>
+        <li>Mangroves: Global Mangrove Watch <b>v3</b> 2010/2020 extent and change, via the UNEP-WCMC service. Bunting et al., CC BY 4.0.</li>
+        <li class="wdpa-src">Protected areas: UNEP-WCMC and IUCN (2026), Protected Planet: The World Database on Protected and Conserved Areas (WDPCA), October 2026, Cambridge, UK, protectedplanet.net. The designations shown imply no opinion on the legal status of any country, territory or area. Boundaries are loaded live from UNEP-WCMC’s map service each time the map opens and are not stored in this site.</li>
+        <li>Turbidity: contains modified Copernicus Sentinel data 2020–2025 (ESA), via Microsoft Planetary Computer; processed for this map.</li>
+        <li>Rivers and creeks: © OpenStreetMap contributors, ODbL (mouth positions approximate).</li>
+        <li>Live imagery: NASA Global Imagery Browse Services (GIBS).</li>
+        <li>Bathymetry: NOAA NCEI DEM Global Mosaic (ImageServer), retrieved 13 Oct 2026.</li>
+        <li>Reef monitoring: AGRRA (Atlantic and Gulf Rapid Reef Assessment) public feature services, BaseBySite, Coral_Health_Survey_mapping, BelizeSurvey; contributors include Healthy Reefs for Healthy People and Fragments of Hope.</li>
+        <li>Basemaps: Esri World Imagery, Esri Ocean base and reference; OpenStreetMap.</li>
+      </ul>
+      <h2>Caveats</h2>
+      <ul>
+        <li><b>Mangrove version mismatch.</b> The M1–M12 candidates were derived from GMW v4.1 (2015→2025). The mangrove layer here is GMW v3 (2010→2020) because v4.1 isn’t available as a web service. Expect the M polygons not to line up exactly with the v3 loss pixels; the Figures tab shows the original v4.1 maps.</li>
+        <li><b>Reef connectivity colouring</b> is recomputed here from GMW v3 2020 extent (distance from each Coral/Algae polygon to nearest mangrove), so class boundaries may differ slightly from the scouting figure.</li>
+        <li><b>PHMR no-take zones</b> are the four small Port Honduras Marine Reserve sub-polygons in WDPA, which match the replenishment zones used in the scouting analysis. Confirm current zoning with TIDE and the Fisheries Department before fieldwork. Sapodilla Cayes MR zoning is not attributed in WDPA.</li>
+        <li>Allen Coral Atlas is a remote-sensing product, validated to roughly 10 m depth in clear water; turbid inshore Port Honduras waters are likely under-mapped.</li>
+        <li>Tenure for M3 and M6 is unknown; check before approaching landowners.</li>
+      </ul>
+      <p style="color:var(--muted);font-size:12px">Built for the SEASTRONG pre-visit, Nov–Dec 2026. Hosted on GitHub Pages. Shortlists and notes are saved only in your own browser; use Export CSV in the Shortlist tab to share them.</p>
+    </section>
+  </aside>
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div id="coord">—</div>
+    <button class="btn primary" id="toggleSide">Layers &amp; sites</button>
+  </div>
+</div>
+<div id="lightbox"><img alt=""></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>window.SEASTRONG_WEB = true;</script>
+<script src="data/sites.js"></script>
+<script src="data/habitat.js"></script>
+<script src="data/water.js"></script>
+<script src="data/revised.js"></script>
+<script src="data/bathy.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
