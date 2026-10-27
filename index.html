@@ -88,6 +88,7 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
 #coord{position:absolute;right:10px;bottom:24px;z-index:800;background:rgba(11,23,36,.85);color:var(--text);font:12px ui-monospace,Consolas,monospace;padding:4px 8px;border-radius:4px;pointer-events:none}
 #mapwrap{position:relative;min-height:0}
 #toggleSide{display:none}
+body.web .local-only{display:none}body:not(.web) .web-only{display:none}
 #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
 #lightbox img{max-width:100%;max-height:100%;box-shadow:0 0 30px #000}
 /* Leaflet popup theming */
@@ -118,7 +119,7 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
   <aside id="side">
     <header>
       <h1>SEASTRONG · Southern Belize seascape</h1>
-      <p>Candidate restoration and corridor sites from the desk-based site scouting, over mangrove, seagrass, reef and protected-area layers.</p>
+      <p>Candidate restoration sites from the desk-based screening, with habitat, water clarity, depth, reef monitoring and protected-area layers.</p>
     </header>
     <nav class="tabs">
       <button data-tab="layers" class="on">Layers</button>
@@ -138,9 +139,9 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
       <div id="lyr-water"></div>
       <div class="chips" id="seasonChips" style="margin-left:26px">
         <button data-s="all">All year</button>
-        <button data-s="dry">Dry Feb–May</button>
-        <button data-s="wet">Wet Jun–Oct</button>
-        <button data-s="nov" class="on">Nov–Jan</button>
+        <button data-s="dry">Dry (Feb to May)</button>
+        <button data-s="wet">Wet (Jun to Oct)</button>
+        <button data-s="nov" class="on">Nov to Jan</button>
       </div>
       <div class="slider">Clarity opacity <input type="range" id="turbOp" min="0.2" max="1" step="0.05" value="0.8"></div>
       <div id="turbLegend" class="tlegend"></div>
@@ -154,11 +155,11 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
       </div>
       <h2>Depth</h2>
       <div id="lyr-depth"></div>
-      <p class="note" style="margin:6px 0 0 26px">A regional grid (~460 m cells). It shows the lagoon, shelf edge and channels, not reef tops. Use the in-situ AGRRA depths and soundings in the field for dive planning.</p>
+      <p class="note" style="margin:6px 0 0 26px">Regional grid with cells of about 460 m. It shows the lagoon floor and the shelf edge but not reef tops; use in-situ AGRRA depths and field soundings for dive planning.</p>
       <h2>Reef monitoring (AGRRA)</h2>
       <div id="lyr-agrra"></div>
       <div class="chips" id="healthChips" style="margin-left:26px">
-        <span style="font-size:11px;color:var(--muted);align-self:center">Colour coral health by</span>
+        <span style="font-size:11px;color:var(--muted);align-self:center">Color coral health by</span>
         <button data-m="bleach">Bleaching</button>
         <button data-m="sctld">SCTLD</button>
       </div>
@@ -182,14 +183,14 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
       <input class="search" id="q" placeholder="Search name, reserve, assessment…">
       <div class="chips" id="typeChips">
         <button data-t="all" class="on">All</button>
-        <button data-t="R">Clarity-screened R1–R13</button>
-        <button data-t="C">Original C1–C11</button>
+        <button data-t="R">Clarity-screened R1 to R13</button>
+        <button data-t="C">First-pass C1 to C11</button>
         <button data-t="M">Mangrove plots</button>
         <button data-t="S">Seagrass plots</button>
       </div>
       <select id="protSel">
         <option value="">Any protection status</option>
-        <option value="notake">No-take / replenishment zone</option>
+        <option value="notake">No-take (replenishment) zone</option>
         <option value="mpa">Inside a marine reserve (any zone)</option>
         <option value="terr">Terrestrial protected area</option>
         <option value="none">Outside protected areas</option>
@@ -208,12 +209,12 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
           <option value="pg">Sort nearest Punta Gorda</option>
         </select>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin:6px 0 0">Clarity filter uses the season selected in Layers → Water clarity.</p>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0">The clarity filter uses the season selected under Layers, Water clarity.</p>
       <div id="siteList" style="margin-top:6px"></div>
     </section>
 
     <section class="pane" id="tab-short">
-      <p class="note">Star sites on the map or in the list to build a shortlist for the site register. Notes are kept in this browser only. Export the CSV to paste into the <em>Site register</em> tab of the field workbook.</p>
+      <p class="note">Star sites on the map or in the list to build a shortlist. Notes are saved in this browser only. The exported CSV matches the <em>Site register</em> tab of the field workbook.</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn primary" id="expCsv">Export CSV</button>
         <button class="btn" id="expGeo">Export GeoJSON</button>
@@ -224,66 +225,75 @@ input.search,select{width:100%;background:var(--panel2);border:1px solid var(--l
     </section>
 
     <section class="pane" id="tab-figs">
-      <p class="note">Static figures from the original scouting analysis (GMW v4.1, Allen Coral Atlas, WDPA). Click to enlarge.</p>
+      <p class="note">Figures from the first-pass scouting analysis (Global Mangrove Watch v4.1, Allen Coral Atlas, WDPA). Click a figure to enlarge it.</p>
       <div id="figList"></div>
     </section>
 
     <section class="pane about" id="tab-about">
-      <h2>What this map shows</h2>
-      <p><b>Corridors C1–C11</b> are mangrove → seagrass → reef transects chosen to sample connected habitat across a protection gradient (no-take, general use, unprotected) and a connectivity gradient (reef distance to nearest mangrove: tight &lt;1 km, intermediate 1–5 km, loose 5–15 km).</p>
-      <p><b>Mangrove plot candidates M1–M12</b> are patches mapped as mangrove in 2015 but not in 2025 (Global Mangrove Watch v4.1). The assessment column flags which look like real seaward-fringe loss (priority) versus probable classification shifts at the landward ecotone (verify on the ground).</p>
-      <p><b>Seagrass plot candidates S1–S10</b> are bare patches inside continuous seagrass (Allen Coral Atlas), ranked by distance from Abalone Caye ranger station. <i>sg_frac_ring</i> is the fraction of the surrounding ring classed as seagrass, a proxy for how enclosed the gap is.</p>
-      <h2>Clarity-screened sites R1–R13: how they were picked</h2>
-      <p><b>Candidates.</b> Coral nodes on a 200 m grid inside every Allen Coral Atlas Coral/Algae polygon (2,644 points). For each one: the nearest mangrove (GMW v3 2020, plus the v4.1 scouting points where v3 has no mangrove, e.g. the Sapodilla and outer cayes), and a seagrass node picked from a 100 m seagrass grid between them. The seagrass pick trades off staying on the reef–mangrove path against the clearest available water. Within a site, the three nodes are at least 250 m apart so each shows separately when zoomed in, and the mangrove is within 5 km of the coral node so each site works as one compact area. No node is within 1.5 km of another site’s nodes.</p>
-      <p><b>Screen.</b> Coral-node median turbidity ≤ 2 FNU and seagrass-node median ≤ 2.5 FNU (all-year, Sentinel-2 2020–25).</p>
-      <p><b>Score (0–1).</b> Water clarity 40% (median turbidity and the share of clear-sky days above 5 FNU, averaged over the coral and seagrass nodes) · habitat extent 20% (coral within 400 m, seagrass within 300 m, mangrove within 500 m) · connectivity 15% (tight &lt;1 km scores highest) · access from Punta Gorda 15% (≤15 km best, ≥60 km zero) · distance from river mouths 10%.</p>
-      <p><b>Selection.</b> Highest-scoring sites, filled by protection class so the set keeps the no-take / general-use / unprotected contrast. Within 50 km of Punta Gorda: 3 PHMR no-take (R2, R4, R6), 4 PHMR general use (R1, R3, R5, R7) and 2 unprotected (R8, R9). Further out: 2 at the Sapodilla Cayes (R10, R11) and 2 unprotected in the northern lagoon (R12, R13, better run from Placencia). The clear central PHMR water is almost all inside the reserve. Unprotected controls there would share mangrove stands with the no-take sites, so the clear-water unprotected sites are in the northern lagoon, and the ones near Punta Gorda are only moderately clear.</p>
-      <p><b>Effect on the first pass.</b> Five original corridors fail the clarity screen: C1 (coral 2.1 / seagrass 2.4 FNU), C2 (2.3 / 2.5), C5 (3.0 / 3.5), C6 (3.6 / 4.4) and C7 (2.8 / 2.9). C3, C4, C8, C9, C10 and C11 pass. C3 and C4 are in the same Snake Cayes area as R2 and R4. Turbid inshore reefs aren’t worthless scientifically (their corals are adapted to sediment and may be useful as a contrast or refuge), but they’re poor places for repeated diving work.</p>
-      <p><b>Not yet known from desk data:</b> depth at each node, substrate firmness, current, tenure of caye mangroves, and boat landing access. Check these on the pre-visit.</p>
-      <h2>Water clarity layer: how it was made</h2>
-      <p>Turbidity (FNU) from 1,200 Sentinel-2 L2A scenes, Jan 2020–Dec 2025 (447 usable acquisition dates), Microsoft Planetary Computer. Per scene: Dogliotti et al. (2015) single-band algorithm, red 665 nm switching to NIR 865 nm in turbid water; sun glint and aerosol residual removed by subtracting SWIR (2190 nm) reflectance; observations with SWIR &gt; 0.02 discarded as glint/haze (~48% of clear-sky pixel observations); clouds, shadows and cirrus masked with the scene classification and buffered 240 m; then a per-date dark-water correction scaling the clearest 10% of offshore water to ~0.2 FNU (removes Mar–May smoke haze). Gridded at 120 m. Seasonal layers show the median of all clear-sky observations and the share of them above 5 FNU.</p>
-      <p><b>Reading the classes for diving:</b> &lt;1 FNU very clear; 1–2 clear; 2–5 moderate, reduced visibility; 5–10 turbid, poor visibility; &gt;10 plume water. These are relative guides, not visibility in metres. Take a Secchi disk on the pre-visit and log readings at each site; a few in-situ values would let us calibrate this layer to visibility.</p>
-      <h2>Caveats specific to water clarity</h2>
+      <h2>About this map</h2>
+      <p>This map supports the SEASTRONG desk-based screening of candidate mangrove, seagrass and coral restoration sites in southern Belize, prepared for the pre-visit with TIDE and Healthy Reefs for Healthy People (24 November to 3 December 2026). The screening is preliminary: site locations, scores and water clarity estimates are intended to guide field visits and need checking with partners and in the field.</p>
+      <p>Prepared by Graham Patterson (REEF Scuba) for the SEASTRONG project (Horizon Europe, grant agreement No. 101286483).</p>
+
+      <h2>Candidate sites</h2>
+      <p><b>Clarity-screened sites R1 to R13</b> each combine a mangrove, a seagrass and a coral point. They are the current shortlist for field assessment.</p>
+      <p><b>First-pass corridors C1 to C11</b> are mangrove, seagrass and coral transects chosen to sample a protection gradient (no-take, general use, unprotected) and a connectivity gradient (coral distance to the nearest mangrove: tight, less than 1 km; intermediate, 1 to 5 km; loose, 5 to 15 km). Five of them (C1, C2, C5, C6 and C7) do not pass the water clarity screen described below.</p>
+      <p><b>Mangrove plot candidates M1 to M12</b> are patches mapped as mangrove in 2015 but not in 2025 (Global Mangrove Watch v4.1). The assessment separates apparent seaward-fringe loss (priority) from probable changes in classification at the landward ecotone (to be verified).</p>
+      <p><b>Seagrass plot candidates S1 to S10</b> are bare patches inside continuous seagrass (Allen Coral Atlas), ranked by distance from the Abalone Caye ranger station.</p>
+
+      <h2>How sites R1 to R13 were selected</h2>
+      <p><b>Candidates.</b> Coral points were placed on a 200 m grid inside Allen Coral Atlas coral/algae polygons. Each was paired with the nearest mangrove (Global Mangrove Watch v3 2020, supplemented by first-pass v4.1 points where v3 shows no mangrove) and a seagrass point from a 100 m seagrass grid between them. The three points of a site are at least 250 m apart, the mangrove lies within 5 km of the coral point, and no point lies within 1.5 km of another site.</p>
+      <p><b>Clarity screen.</b> Sites were retained only where the year-round median turbidity was at most 2 FNU at the coral point and at most 2.5 FNU at the seagrass point.</p>
+      <p><b>Suitability score (0 to 1).</b> Water clarity 40 percent (median turbidity and the share of cloud-free days above 5 FNU, averaged over the coral and seagrass points); habitat extent 20 percent (coral/algae within 400 m, seagrass within 300 m, mangrove within 500 m); connectivity 15 percent (coral to mangrove distance); access from Punta Gorda 15 percent (full marks within 15 km, none beyond 60 km); distance from river mouths 10 percent. The weights reflect the priority given to water clarity for repeated scuba-based work; they are judgments rather than calibrated values.</p>
+      <p><b>Selection.</b> The highest-scoring sites were taken within each protection class, at least 2.5 km apart, to retain the contrast between no-take, general use and unprotected areas: three Port Honduras Marine Reserve no-take sites (R2, R4, R6), four general use sites (R1, R3, R5, R7) and two unprotected sites (R8, R9) within 50 km of Punta Gorda, two sites in the Sapodilla Cayes (R10, R11) and two unprotected sites in the northern lagoon (R12, R13), which are more accessible from Placencia. Clear water in central Port Honduras lies almost entirely inside the reserve, so the clear-water unprotected sites are in the northern lagoon; those near Punta Gorda are moderately clear.</p>
+      <p><b>Not yet assessed:</b> depth at each point, substrate firmness, currents, land tenure of caye mangroves and landing access.</p>
+
+      <h2>Water clarity</h2>
+      <p>Turbidity was estimated from 1,200 Sentinel-2 Level-2A scenes (2020 to 2025; 447 usable acquisition dates) using the single-band algorithm of Dogliotti et al. (2015), with the red band switching to near-infrared in turbid water. Sun glint and residual haze were removed by subtracting short-wave infrared reflectance; observations with strong glint or haze were discarded, as were clouds and cloud shadows (buffered by 240 m). A per-date correction scaled the clearest offshore water to about 0.2 FNU. Results are gridded at 120 m.</p>
+      <p>Values are best read as relative guides: below 1 FNU very clear, 1 to 2 clear, 2 to 5 moderate, 5 to 10 turbid, above 10 plume water. They are not estimates of underwater visibility in meters. Secchi disk readings taken during the pre-visit would allow the layer to be calibrated.</p>
       <ul>
-        <li><b>Clear-sky bias.</b> Optical satellites only see cloud-free days. In the wet season (25–34 usable dates per month vs 40–58 in the dry season) the days right after heavy rain, when plumes peak, are under-sampled. Treat wet-season values as a best case.</li>
-        <li><b>Bright bottom.</b> In clear water shallower than ~3 m, light reflected off sand raises the signal and reads as “turbid”. Shallow reef flats and sand on the barrier reef and Sapodilla Cayes are flagged grey and excluded. Smaller inshore shallows aren’t flagged: the seagrass gap sites (S1–S10) are bare sand, so their values may be inflated.</li>
-        <li><b>Dry season reads higher than wet</b> at many inshore sites. Part of this is probably real: Feb–May trade winds and winter cold fronts (“northers”) stir up sediment in shallow Port Honduras. Part may be leftover haze from the burning season. Check it against the monthly profiles and field observations.</li>
-        <li>Surface-weighted: the satellite sees roughly the top 1–3 m in turbid water. A clearer bottom layer (or a turbid near-bottom layer) can be missed.</li>
-        <li>At 120 m, sites inside narrow creeks or tight against mangrove fringes are sampled from the nearest open water (shown in each popup). M1 and M8 (Sarstoon-Temash) have no reliable water pixels.</li>
-        <li>A small step between Sentinel-2 tiles is visible around 16.3°N.</li>
+        <li><b>Clear-sky bias.</b> Optical satellites observe only cloud-free days. The wet season has 25 to 34 usable dates per month against 40 to 58 in the dry season, so plumes after heavy rain are under-sampled. Wet-season values are best treated as a lower bound.</li>
+        <li><b>Bright bottom.</b> In clear water shallower than about 3 m, light reflected from sand can raise the signal. Shallow reef flats on the barrier reef and in the Sapodilla Cayes are masked in gray. Smaller shallow areas are not, and the seagrass plot candidates (bare sand) may read high.</li>
+        <li><b>Seasonal pattern.</b> Many inshore sites read higher in the dry season than in the wet season. This may partly reflect resuspension by trade winds and winter cold fronts in shallow Port Honduras, and partly residual haze from the burning season.</li>
+        <li>The signal comes mainly from the upper 1 to 3 m of the water column in turbid water. Points in narrow creeks or against mangrove fringes are sampled from the nearest open water; M1 and M8 have no water pixels within 1.2 km.</li>
+        <li>A small step between Sentinel-2 tiles is visible near 16.3°N.</li>
       </ul>
+
       <h2>Depth and reef monitoring</h2>
-      <p><b>Bathymetry</b> comes from NOAA NCEI’s global DEM mosaic. Over southern Belize its cells are about 460 m, consistent with the GEBCO 15-arc-second grid. It shows the lagoon floor (half the lagoon cells are 17–36 m), the Snake Cayes and Sapodilla shoals, and the drop-off east of the barrier reef. It does <i>not</i> resolve reef tops, patch reefs or channels between cayes: a coral node on a 2 m reef flat can read 15–20 m. Treat popup depths as context only.</p>
-      <p><b>AGRRA</b> data come from the public layers behind the AGRRA Data Explorer. Benthic surveys (BaseBySite) give live coral and fleshy macroalgae cover and the Reef Health Index; public site-level results run 2011–2021. Coral health surveys (Coral Health Survey, 2017–2026) count colonies by condition: healthy, SCTLD, other disease, fully or partially bleached, pale, recently dead. Recent Placencia-area data are largely Fragments of Hope’s monthly bleaching surveys. The map loads them live from AGRRA each time it opens; no AGRRA data are stored in this site. Unapproved coral-health records are left out, and surveys with fewer than 10 colonies counted as qualitative. The data cover the map’s window (15.85–16.6°N, 89.25–87.95°W), so a few Guatemalan sites in the Bay of Amatique are included.</p>
+      <p><b>Bathymetry</b> comes from the NOAA NCEI DEM Global Mosaic. In this area its cells are about 460 m, consistent with the GEBCO 15 arc-second grid. It shows the lagoon floor (half of the lagoon cells are 17 to 36 m deep), the Snake Cayes and Sapodilla shoals and the drop-off east of the barrier reef. It does not resolve reef tops, patch reefs or channels between cayes, so depths at coral points can read several meters too deep.</p>
+      <p><b>AGRRA</b> data come from the public services behind the AGRRA Data Explorer. Benthic surveys give live coral and fleshy macroalgae cover and the Reef Health Index (site-level public results run 2011 to 2021); 17 of them were fish-only, and their index reflects fish indicators alone. Coral health surveys (2017 to 2026) count colonies by condition; recent Placencia-area records are largely Fragments of Hope monitoring. Records marked as not approved are excluded, and surveys with fewer than 10 colonies are treated as qualitative. <span class="local-only">The map loads the latest records when it opens and falls back to a copy saved on 13 October 2026.</span><span class="web-only">The map loads the records live from AGRRA each time it opens; no AGRRA data are stored in this site.</span></p>
+
       <h2>Live imagery</h2>
-      <p>Pulled daily from NASA GIBS: MODIS Terra/Aqua and VIIRS true colour (250–375 m), PACE OCI true colour and chlorophyll-a (~1.2 km, daily), and Harmonized Landsat–Sentinel-2 (30 m, only on overpass days, often cloudy). PACE resolves lagoon-scale and Gulf of Honduras plumes (Sarstún, Motagua, Dulce) but not individual inshore cayes. PACE’s quantitative diffuse-attenuation product, Kd(490), isn’t on GIBS. It needs a free NASA Earthdata login to download and could be added as a climatology later.</p>
-      <h2>Data sources in this viewer</h2>
+      <p>Daily imagery from NASA GIBS: MODIS Terra and Aqua and VIIRS true color (250 to 375 m), PACE OCI true color and chlorophyll-a (about 1.2 km) and Harmonized Landsat and Sentinel-2 (30 m, on overpass days only). PACE resolves lagoon-scale and Gulf of Honduras plumes but not individual inshore cayes.</p>
+
+      <h2>Other limitations</h2>
       <ul>
-        <li>Candidate sites: <code>seastrong_belize_scouting.gpkg</code> (scouting analysis, Oct 2026).</li>
-        <li>Seagrass and Coral/Algae: Allen Coral Atlas benthic map (v2), downloaded via WFS for this area and simplified to ~10 m. Bare-sand, rubble and rock classes not shown. © Allen Coral Atlas Partnership, CC BY 4.0.</li>
-        <li>Mangroves: Global Mangrove Watch <b>v3</b> 2010/2020 extent and change, via the UNEP-WCMC service. Bunting et al., CC BY 4.0.</li>
-        <li class="wdpa-src">Protected areas: UNEP-WCMC and IUCN (2026), Protected Planet: The World Database on Protected and Conserved Areas (WDPCA), October 2026, Cambridge, UK, protectedplanet.net. The designations shown imply no opinion on the legal status of any country, territory or area. Boundaries are loaded live from UNEP-WCMC’s map service each time the map opens and are not stored in this site.</li>
-        <li>Turbidity: contains modified Copernicus Sentinel data 2020–2025 (ESA), via Microsoft Planetary Computer; processed for this map.</li>
-        <li>Rivers and creeks: © OpenStreetMap contributors, ODbL (mouth positions approximate).</li>
+        <li>The mangrove plot candidates come from Global Mangrove Watch v4.1 (2015 to 2025); the mangrove layer on this map is v3 (2010 to 2020), so the two do not align exactly. The Figures tab shows the original v4.1 maps.</li>
+        <li>The reef connectivity coloring is computed from the v3 2020 mangrove extent and may differ slightly from the first-pass figures.</li>
+        <li>The Port Honduras no-take zones are the four small reserve parts in the WDPA, matching the replenishment zones used in the first pass. Current zoning should be confirmed with the Fisheries Department and TIDE; Sapodilla Cayes zoning is not attributed in the WDPA.</li>
+        <li>Allen Coral Atlas mapping is generally considered reliable to about 10 m depth in clear water; turbid inshore areas are likely under-mapped.</li>
+        <li>Distances are straight-line, not boat routes. Land tenure at M3 and M6 is unknown.</li>
+      </ul>
+
+      <h2>Data sources</h2>
+      <ul>
+        <li>Candidate sites: SEASTRONG desk-based site screening, October 2026.</li>
+        <li>Seagrass and coral/algae: Allen Coral Atlas benthic map v2, simplified to about 10 m. © Allen Coral Atlas Partnership, CC BY 4.0.</li>
+        <li>Mangroves: Global Mangrove Watch v3, 2010 and 2020 extent and change, via UNEP-WCMC. Bunting et al., CC BY 4.0.</li>
+        <li>Protected areas: UNEP-WCMC and IUCN (2026), Protected Planet: The World Database on Protected and Conserved Areas (WDPCA), October 2026, Cambridge, UK, www.protectedplanet.net. The designations shown imply no opinion on the legal status of any country, territory or area.<span class="web-only"> Boundaries are loaded live from the UNEP-WCMC map service and are not stored in this site.</span></li>
+        <li>Turbidity: contains modified Copernicus Sentinel data 2020 to 2025, via Microsoft Planetary Computer.</li>
+        <li>Rivers and streams: © OpenStreetMap contributors, ODbL; river mouth positions are approximate.</li>
+        <li>Bathymetry: NOAA NCEI DEM Global Mosaic, retrieved 13 October 2026.</li>
+        <li>Reef monitoring: Atlantic and Gulf Rapid Reef Assessment (AGRRA) public data services; contributors include Healthy Reefs for Healthy People and Fragments of Hope.</li>
         <li>Live imagery: NASA Global Imagery Browse Services (GIBS).</li>
-        <li>Bathymetry: NOAA NCEI DEM Global Mosaic (ImageServer), retrieved 13 Oct 2026.</li>
-        <li>Reef monitoring: AGRRA (Atlantic and Gulf Rapid Reef Assessment) public feature services, BaseBySite, Coral_Health_Survey_mapping, BelizeSurvey; contributors include Healthy Reefs for Healthy People and Fragments of Hope.</li>
-        <li>Basemaps: Esri World Imagery, Esri Ocean base and reference; OpenStreetMap.</li>
+        <li>Basemaps: Esri World Imagery, Esri Ocean base and reference, OpenStreetMap<span class="local-only">; Google satellite (viewing only, not for published figures)</span>.</li>
       </ul>
-      <h2>Caveats</h2>
-      <ul>
-        <li><b>Mangrove version mismatch.</b> The M1–M12 candidates were derived from GMW v4.1 (2015→2025). The mangrove layer here is GMW v3 (2010→2020) because v4.1 isn’t available as a web service. Expect the M polygons not to line up exactly with the v3 loss pixels; the Figures tab shows the original v4.1 maps.</li>
-        <li><b>Reef connectivity colouring</b> is recomputed here from GMW v3 2020 extent (distance from each Coral/Algae polygon to nearest mangrove), so class boundaries may differ slightly from the scouting figure.</li>
-        <li><b>PHMR no-take zones</b> are the four small Port Honduras Marine Reserve sub-polygons in WDPA, which match the replenishment zones used in the scouting analysis. Confirm current zoning with TIDE and the Fisheries Department before fieldwork. Sapodilla Cayes MR zoning is not attributed in WDPA.</li>
-        <li>Allen Coral Atlas is a remote-sensing product, validated to roughly 10 m depth in clear water; turbid inshore Port Honduras waters are likely under-mapped.</li>
-        <li>Tenure for M3 and M6 is unknown; check before approaching landowners.</li>
-      </ul>
-      <p style="color:var(--muted);font-size:12px">Built for the SEASTRONG pre-visit, Nov–Dec 2026. Hosted on GitHub Pages. Shortlists and notes are saved only in your own browser; use Export CSV in the Shortlist tab to share them.</p>
+      <p>Dogliotti, A. I., Ruddick, K. G., Nechad, B., Doxaran, D. and Knaeps, E. (2015). A single algorithm to retrieve turbidity from remotely-sensed data in all coastal and estuarine waters. <i>Remote Sensing of Environment</i> 156: 157 to 168.</p>
+      <p style="color:var(--muted);font-size:12px"><span class="local-only">Requires an internet connection for basemaps and live layers; the thematic layers are stored in the <code>data</code> folder.</span><span class="web-only">Hosted on GitHub Pages. Shortlists and notes are saved only in your own browser; use Export CSV in the Shortlist tab to share them.</span></p>
     </section>
   </aside>
   <div id="mapwrap">
     <div id="map"></div>
-    <div id="coord">—</div>
+    <div id="coord"></div>
     <button class="btn primary" id="toggleSide">Layers &amp; sites</button>
   </div>
 </div>

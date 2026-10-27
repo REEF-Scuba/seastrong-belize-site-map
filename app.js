@@ -33,9 +33,60 @@
     return rings.map((r) => { const out = []; let x = 0, y = 0; for (let i = 0; i < r.length; i += 2) { x += r[i]; y += r[i + 1]; out.push([y / 1e5, x / 1e5]); } return out; });
   }
 
+
+  // ---------- display labels ----------
+  const PROTECTION_LABEL = {
+    'PHMR no-take': 'Port Honduras Marine Reserve, replenishment (no-take) zone',
+    'PHMR no-take zone': 'Port Honduras Marine Reserve, replenishment (no-take) zone',
+    'PHMR general use': 'Port Honduras Marine Reserve, general use zone',
+    'PHMR': 'Port Honduras Marine Reserve, general use zone',
+    'Sapodilla Cayes MR': 'Sapodilla Cayes Marine Reserve',
+    'Nicholas Caye, Sapodilla Cayes Spawning Aggregation Site Reserves': 'Sapodilla Cayes Marine Reserve, Nicholas Caye spawning aggregation site',
+    'unprotected': 'Outside protected areas'
+  };
+  const protectionLabel = (raw) => PROTECTION_LABEL[raw] || raw;
+  const connectivityLabel = (raw) => {
+    const t = String(raw || '');
+    if (/tight/i.test(t)) return 'Tight (less than 1 km)';
+    if (/intermediate/i.test(t)) return 'Intermediate (1 to 5 km)';
+    if (/loose/i.test(t)) return 'Loose (5 to 15 km)';
+    return t;
+  };
+  const regionLabel = (raw) => (raw === 'Northern lagoon (Placencia base)' ? 'Northern lagoon (Placencia access)' : raw);
+  const MANGROVE_ASSESSMENT = {
+    'Seaward fringe; consistent with erosion, priority': ['Priority: seaward-fringe loss', 'Seaward fringe; apparent loss is consistent with shoreline erosion.'],
+    'Landward ecotone; likely classification shift, verify': ['Verify: possible change in classification', 'Landward ecotone; apparent loss may reflect a change in classification rather than mangrove loss. Field verification needed.'],
+    'Tenure unknown; verify': ['Verify: land tenure unknown', 'Land tenure unknown. Field verification needed.'],
+    'Sarstoon-Temash; far, border area': ['Low: remote border area', 'Remote site in Sarstoon-Temash, near the Guatemala border.']
+  };
+  const assessment = (raw) => MANGROVE_ASSESSMENT[raw] || [raw, raw];
+  function samplingLabel(note) {
+    if (!note) return 'No data';
+    if (/^within/.test(note)) return 'Water pixels within 240 m';
+    const m = /nearest open water (\d+) m/.exec(note);
+    if (m) return `Nearest open water, ${m[1]} m away`;
+    if (/^no reliable/.test(note)) return 'No water pixels within 1.2 km';
+    return note;
+  }
+  const MPA_PATTERNS = [
+    [['laugh', 'lbcnp'], 'Laughing Bird Caye National Park'],
+    [['gladden', 'gsscmr'], 'Gladden Spit and Silk Cayes Marine Reserve'],
+    [['port honduras', 'phmr'], 'Port Honduras Marine Reserve'],
+    [['sapodilla', 'scmr'], 'Sapodilla Cayes Marine Reserve'],
+    [['south water'], 'South Water Caye Marine Reserve'],
+    [['manabique'], 'Punta de Manabique Wildlife Refuge']
+  ];
+  function standardMpa(text) { // AGRRA surveyors spell reserve names many ways
+    if (!text) return '';
+    const key = text.toLowerCase().split(/\s+/).join(' ');
+    const hit = MPA_PATTERNS.find(([pats]) => pats.some((x) => key.includes(x)));
+    return hit ? hit[1] : text.trim();
+  }
+
   // ---------- map ----------
   const map = L.map('map', { zoomControl: true, minZoom: 8, maxZoom: 19, worldCopyJump: false });
   window.SEASTRONG_MAP = map;
+  if (window.SEASTRONG_WEB) document.body.classList.add('web');
   const AOI = L.latLngBounds([15.95, -89.1], [16.55, -88.0]);
   map.fitBounds(AOI);
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
@@ -63,8 +114,8 @@
   // other people open goes beyond Google's terms. The local copy keeps it for viewing.
   if (window.SEASTRONG_WEB) delete basemaps['Satellite (Google)'];
   const BM_NOTES = {
-    'Satellite (Google)': 'Google imagery is for viewing only. Don’t publish screenshots or figures made with it; switch to Esri for those.',
-    'Ocean (Esri)': 'Esri’s ocean map has detail down to about 1:500,000 here (zoom 10); closer in it is enlarged and soft. For depths, turn on Bathymetry under Water clarity & runoff.'
+    'Satellite (Google)': 'Google imagery is for viewing only. Use the Esri imagery for any screenshots or figures that will be published.',
+    'Ocean (Esri)': 'The Esri ocean map has detail to about 1:500,000 in this area (zoom 10); at closer zoom it is enlarged and appears soft. For depth, turn on Bathymetry under Depth.'
   };
   let bmKey = store.get('seastrong_basemap', 'Satellite (Esri)');
   if (!basemaps[bmKey]) bmKey = 'Satellite (Esri)';
@@ -152,7 +203,7 @@
     const qs = new URLSearchParams({ geometry: '-89.25,15.85,-87.95,16.6', geometryType: 'esriGeometryEnvelope', inSR: 4326, outSR: 4326, spatialRel: 'esriSpatialRelIntersects',
       outFields: 'site_id,name,desig_eng,iucn_cat,realm,status_yr,mang_auth,iso3', maxAllowableOffset: 0.0002, geometryPrecision: 5, f: 'geojson' });
     try { const r = await fetch(WDPA_URL + '?' + qs); const d = await r.json(); addWdpa((d.features || []).map(classifyWdpa)); }
-    catch (e) { const n = document.getElementById('lyr-prot'); if (n) n.insertAdjacentHTML('beforeend', '<div class="note" style="margin:6px 0 0 26px">Protected-area boundaries couldn’t be loaded from UNEP-WCMC just now. Reload to try again.</div>'); }
+    catch (e) { const n = document.getElementById('lyr-prot'); if (n) n.insertAdjacentHTML('beforeend', '<div class="note" style="margin:6px 0 0 26px">Protected-area boundaries could not be loaded from UNEP-WCMC. Reload the page to try again.</div>'); }
   })();
 
   // ---------- reference ----------
@@ -178,7 +229,7 @@
   map.createPane('turb').style.zIndex = 408;
   map.createPane('rivers').style.zIndex = 425;
   let season = store.get('seastrong_season', 'nov');
-  const SEASON_LABEL = { all: 'All year', dry: 'Dry Feb–May', wet: 'Wet Jun–Oct', nov: 'Nov–Jan' };
+  const SEASON_LABEL = { all: 'All year', dry: 'Dry season (Feb to May)', wet: 'Wet season (Jun to Oct)', nov: 'Nov to Jan' };
   const CLS = [[1, '#1f78c8', 'very clear'], [2, '#3cc0c8', 'clear'], [5, '#e8d25a', 'moderate'], [10, '#f08c28', 'turbid'], [Infinity, '#a0501e', 'plume water']];
   const clsOf = (T) => CLS.find((c) => T < c[0]);
   let turbOpacity = 0.8;
@@ -240,7 +291,7 @@
     if (v.all === 'shallow') return '<div class="k">Water clarity</div><div class="v">Optically shallow (bright bottom); turbidity not interpretable here.</div>';
     if (!v.all) return '';
     const rows = ['all', 'dry', 'wet', 'nov'].filter((s) => v[s] && v[s] !== 'shallow').map((s) => `<tr><td>${SEASON_LABEL[s]}</td><td>${chip(v[s].T)}</td><td>${v[s].p5}%</td></tr>`).join('');
-    return `<div class="k">Water clarity (Sentinel-2, 2020–25)</div><table class="ctab"><tr><th></th><th>median</th><th>&gt;5 FNU</th></tr>${rows}</table>`;
+    return `<div class="k">Water clarity (Sentinel-2, 2020 to 2025)</div><table class="ctab"><tr><th></th><th>median</th><th>&gt;5 FNU</th></tr>${rows}</table>`;
   }
   // per-site clarity from precomputed stats
   function siteStat(key) { return WD.sites[key] || null; }
@@ -256,31 +307,31 @@
   }
   function siteClarityHTML(key, opts) {
     const st = siteStat(key); opts = opts || {};
-    if (!st || !st.all) return `<div class="k">Water clarity</div><div class="v">${esc((st && st.note) || 'No data')}</div>`;
+    if (!st || !st.all) return `<div class="k">Water clarity</div><div class="v">${esc(samplingLabel(st && st.note))}</div>`;
     const rows = ['all', 'dry', 'wet', 'nov'].filter((s) => st[s]).map((s) => `<tr${s === season ? ' style="font-weight:700"' : ''}><td>${SEASON_LABEL[s]}</td><td>${chip(st[s].med)}</td><td>${Math.round(st[s].p5 * 100)}%</td><td style="color:var(--muted)">${st[s].n}</td></tr>`).join('');
     const mouths = (st.mouths || []).map((m) => `${esc(m[0])} ${m[1]} km`).join(' · ');
-    return `<div class="k">Water clarity${opts.label ? ' · ' + esc(opts.label) : ''} (Sentinel-2, 2020–25)</div>
+    return `<div class="k">Water clarity${opts.label ? ' · ' + esc(opts.label) : ''} (Sentinel-2, 2020 to 2025)</div>
       <table class="ctab"><tr><th></th><th>median turbidity</th><th>days &gt;5 FNU</th><th>n</th></tr>${rows}</table>
-      <div class="k">Monthly median (Nov–Dec visit months highlighted)</div>${monthlyChart(st)}
-      <div style="font-size:11px;color:var(--muted);margin-top:3px">Sampled ${esc(st.note)}.${opts.extra ? ' ' + opts.extra : ''}</div>
+      <div class="k">Monthly median (pre-visit months, Nov and Dec, highlighted)</div>${monthlyChart(st)}
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Sampled from: ${esc(samplingLabel(st.note).toLowerCase())}.${opts.extra ? ' ' + opts.extra : ''}</div>
       ${mouths ? `<div class="k">Nearest river mouths</div><div class="v">${mouths}</div>` : ''}`;
   }
   const siteMed = (key) => { const st = siteStat(key); return st && st[season] ? st[season].med : (st && st.all ? st.all.med : null); };
 
   // live imagery (NASA GIBS)
   const GIBS = [
-    ['MODIS_Terra_CorrectedReflectance_TrueColor', 'MODIS Terra true colour (250 m, ~10:30 local)', 9, 'jpg'],
-    ['MODIS_Aqua_CorrectedReflectance_TrueColor', 'MODIS Aqua true colour (250 m, ~13:30 local)', 9, 'jpg'],
-    ['VIIRS_NOAA20_CorrectedReflectance_TrueColor', 'VIIRS NOAA-20 true colour (375 m)', 9, 'jpg'],
-    ['OCI_PACE_True_Color', 'PACE OCI true colour (~1.2 km, daily)', 7, 'jpg'],
-    ['OCI_PACE_Chlorophyll_a', 'PACE OCI chlorophyll-a (~1.2 km)', 7, 'png'],
+    ['MODIS_Terra_CorrectedReflectance_TrueColor', 'MODIS Terra true color (250 m, about 10:30 local time)', 9, 'jpg'],
+    ['MODIS_Aqua_CorrectedReflectance_TrueColor', 'MODIS Aqua true color (250 m, about 13:30 local time)', 9, 'jpg'],
+    ['VIIRS_NOAA20_CorrectedReflectance_TrueColor', 'VIIRS NOAA-20 true color (375 m)', 9, 'jpg'],
+    ['OCI_PACE_True_Color', 'PACE OCI true color (about 1.2 km, daily)', 7, 'jpg'],
+    ['OCI_PACE_Chlorophyll_a', 'PACE OCI chlorophyll-a (about 1.2 km)', 7, 'png'],
     ['HLS_S30_Nadir_BRDF_Adjusted_Reflectance', 'HLS Sentinel-2 (30 m, overpass days only)', 12, 'png'],
     ['HLS_L30_Nadir_BRDF_Adjusted_Reflectance', 'HLS Landsat (30 m, overpass days only)', 12, 'png']
   ];
   const liveNotes = {
-    OCI_PACE_True_Color: 'PACE passes daily. At ~1.2 km it shows lagoon and Gulf of Honduras plumes, not inshore cayes. Data from Mar 2024.',
+    OCI_PACE_True_Color: 'PACE passes daily. At about 1.2 km it shows lagoon and Gulf of Honduras plumes, not inshore cayes. Data from Mar 2024.',
     OCI_PACE_Chlorophyll_a: 'Standard open-ocean algorithm. In turbid or shallow coastal water, sediment and bottom reflectance inflate chlorophyll, so read it as a plume indicator only.',
-    HLS_S30_Nadir_BRDF_Adjusted_Reflectance: 'Only available on Sentinel-2 overpass days (every 2–5 days); step through dates to find one.',
+    HLS_S30_Nadir_BRDF_Adjusted_Reflectance: 'Only available on Sentinel-2 overpass days (every 2 to 5 days); step through dates to find one.',
     HLS_L30_Nadir_BRDF_Adjusted_Reflectance: 'Only available on Landsat overpass days; step through dates to find one.'
   };
   const liveSel = document.getElementById('liveProd'), liveDate = document.getElementById('liveDate');
@@ -309,7 +360,7 @@
   document.getElementById('liveOp').addEventListener('input', (e) => liveLayer && liveLayer.setOpacity(+e.target.value));
   refreshLive();
 
-  // ---------- bathymetry (regional grid, ~460 m) ----------
+  // ---------- bathymetry (regional grid, about 460 m) ----------
   const BA = window.BATHY;
   map.createPane('bathy').style.zIndex = 300;
   map.createPane('iso').style.zIndex = 412;
@@ -325,7 +376,7 @@
     const raw = Uint8Array.from(atob(BA.grid.b64), (c) => c.charCodeAt(0));
     BGRID = new Int16Array(raw.buffer);
   } catch (e) { BGRID = null; }
-  function depthAt(lat, lon) { // bilinear on the native grid; returns metres below sea level, or null on land/outside
+  function depthAt(lat, lon) { // bilinear on the native grid; returns meters below sea level, or null on land/outside
     if (!BGRID) return null;
     const g = BA.grid, fx = (lon - g.x0) / g.dx - 0.5, fy = (lat - g.y0) / g.dy - 0.5;
     const x0 = Math.floor(fx), y0 = Math.floor(fy);
@@ -337,8 +388,8 @@
   function depthHTML(lat, lon, label, onReef) {
     const d = depthAt(lat, lon);
     const warn = onReef && d != null && d > 15
-      ? '<div style="font-size:11px;color:#ffb36b;margin-top:2px">This node sits on reef mapped by the Allen Coral Atlas, which only maps to about 10–15 m, so the real depth is shallower. The coarse grid is averaging in deeper water nearby.</div>' : '';
-    return `<div class="k">${label || 'Regional depth'}</div><div class="v">${d == null ? 'land or shoreline in the coarse grid' : `~${d < 10 ? d.toFixed(1) : Math.round(d)} m`} <span style="color:var(--muted);font-size:11px">(~460 m grid; reef tops and channels aren’t resolved)</span>${warn}</div>`;
+      ? '<div style="font-size:11px;color:#ffb36b;margin-top:2px">This point lies on reef mapped by the Allen Coral Atlas, which maps to about 10 to 15 m, so the actual depth is likely shallower. The coarse grid is averaging in deeper water nearby.</div>' : '';
+    return `<div class="k">${label || 'Regional depth'}</div><div class="v">${d == null ? 'land or shoreline in the coarse grid' : `about ${d < 10 ? d.toFixed(1) : Math.round(d)} m`} <span style="color:var(--muted);font-size:11px">(regional grid of about 460 m; reef tops and channels are not resolved)</span>${warn}</div>`;
   }
 
   // ---------- AGRRA reef monitoring ----------
@@ -348,8 +399,8 @@
   LYR.agb = () => agBenthic; LYR.agh = () => agHealth; LYR.ag23 = () => ag23;
   const RHI_COL = { 1: '#d7191c', 2: '#f28e2b', 3: '#f2d33a', 4: '#91cf60', 5: '#1a9641' };
   const RHI_LAB = { 1: 'Critical', 2: 'Poor', 3: 'Fair', 4: 'Good', 5: 'Very good' };
-  const ymd = (ms) => (ms ? new Date(ms).toISOString().slice(0, 10) : '—');
-  const pct = (x) => (x == null || isNaN(x) ? '—' : (x * 100 < 10 ? (x * 100).toFixed(1) : Math.round(x * 100)) + '%');
+  const ymd = (ms) => (ms ? new Date(ms).toISOString().slice(0, 10) : 'n/a');
+  const pct = (x) => (x == null || isNaN(x) ? 'n/a' : (x * 100 < 10 ? (x * 100).toFixed(1) : Math.round(x * 100)) + '%');
   const titleCase = (s) => String(s || '').trim().toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
   let healthMode = store.get('seastrong_healthmode', 'bleach');
 
@@ -376,7 +427,7 @@
       (bs[code] = bs[code] || { code, ll: [f.geometry.coordinates[1], f.geometry.coordinates[0]], surveys: [] }).surveys.push(p);
     });
     // Some batches (e.g. Belize-2018C in Port Honduras) were fish-only: no benthic transects, and an RHI built from fish
-    // indicators alone. Use the latest survey that has benthic data for colours and summaries.
+    // indicators alone. Use the latest survey that has benthic data for colors and summaries.
     AG.benthic = Object.values(bs).map((s) => {
       s.surveys.sort((a, b) => (a.SITEDATE || 0) - (b.SITEDATE || 0));
       s.surveys.forEach((x) => { x._fishOnly = x.LCAVG == null && x.FMAAVG == null; });
@@ -385,7 +436,7 @@
       s.hasBenthic = !s.latest._fishOnly;
       s.name = s.latestAny.SITENAME || s.code; return s;
     });
-    // coral health: drop unapproved, group by ~110 m cell
+    // coral health: drop unapproved, group by about 110 m cell
     const hs = {};
     src.health.filter((f) => f.properties.Approval !== 'No').forEach((f) => {
       const [x, y] = f.geometry.coordinates, key = x.toFixed(3) + ',' + y.toFixed(3), p = f.properties;
@@ -410,7 +461,7 @@
     if (healthMode === 'sctld') return s.sctld > 0.05 ? '#6a1b9a' : s.sctld > 0 ? '#ab47bc' : '#2ca25f';
     return s.bleach >= 0.5 ? '#d73027' : s.bleach >= 0.2 ? '#fc8d59' : s.bleach >= 0.05 ? '#fee08b' : '#2ca25f';
   }
-  function sparkSVG(points, series, w, h) { // points: [{t, a, b}] values 0–1
+  function sparkSVG(points, series, w, h) { // points: [{t, a, b}] values 0 to 1
     if (points.length < 2) return '';
     const t0 = points[0].t, t1 = points[points.length - 1].t, X = (t) => 4 + (w - 8) * ((t - t0) / Math.max(1, t1 - t0)), Y = (v) => h - 12 - (h - 18) * Math.min(1, v);
     const lines = series.map(([k, col]) => {
@@ -425,13 +476,13 @@
   function healthPopup(g) {
     const s = g.latestQ, l = g.latest, d0 = g.surveys[0].obs_dateTime, d1 = l.obs_dateTime;
     const depths = g.surveys.map((x) => +x.obs_depth).filter((x) => x > 0);
-    const mpa = l.mpa_name || (l.mpa === 'outside_mpa' ? 'Outside an MPA' : '');
+    const mpa = standardMpa(l.mpa_name) || (l.mpa === 'outside_mpa' ? 'Outside an MPA' : '');
     const resto = { outplant_site: 'Restoration outplant site', nursery_site: 'Coral nursery site' }[l.restoration] || '';
     const pts = g.surveys.filter((x) => x._s.n >= 10).map((x) => ({ t: x.obs_dateTime, a: x._s.bleach, b: x._s.sctld }));
     const rows = g.surveys.slice(-8).reverse().map((x) => `<tr><td>${ymd(x.obs_dateTime)}</td><td>${x._s.n || '<span style="color:var(--muted)">qual.</span>'}</td><td>${pct(x._s.bleach)}</td><td>${pct(x._s.pale)}</td><td>${pct(x._s.sctld)}</td><td>${pct(x._s.dead)}</td><td>${x.obs_depth ? x.obs_depth + ' m' : ''}</td></tr>`).join('');
     return `<div class="pp"><h3>${esc(g.name)}</h3><div class="v" style="color:var(--muted)">AGRRA coral health surveys · ${g.surveys.length} survey${g.surveys.length > 1 ? 's' : ''}, ${ymd(d0).slice(0, 7)} to ${ymd(d1).slice(0, 7)} · ${g.colonies.toLocaleString()} colonies</div>
       ${mpa || resto ? `<div class="v" style="margin-top:4px">${esc([mpa, resto, titleCase(l.reef_type)].filter(Boolean).join(' · '))}</div>` : ''}
-      ${depths.length ? `<div class="k">Survey depth (in situ)</div><div class="v">${Math.min(...depths)}${Math.max(...depths) !== Math.min(...depths) ? '–' + Math.max(...depths) : ''} m</div>` : ''}
+      ${depths.length ? `<div class="k">Survey depth (in situ)</div><div class="v">${Math.min(...depths)}${Math.max(...depths) !== Math.min(...depths) ? ' to ' + Math.max(...depths) : ''} m</div>` : ''}
       ${s ? `<div class="k">Latest quantitative survey · ${ymd(s.obs_dateTime)} · ${s._s.n} colonies</div>
       <table class="ctab"><tr><th>Healthy</th><th>Bleached*</th><th>Pale</th><th>SCTLD</th><th>Other disease</th><th>Recently dead</th></tr>
       <tr><td>${pct(s._s.healthy)}</td><td><b>${pct(s._s.bleach)}</b></td><td>${pct(s._s.pale)}</td><td><b>${pct(s._s.sctld)}</b></td><td>${pct(s._s.other)}</td><td>${pct(s._s.dead)}</td></tr></table>` : '<div class="v" style="margin-top:6px">No quantitative colony counts here (qualitative observations only).</div>'}
@@ -442,7 +493,7 @@
   }
   function benthicPopup(s) {
     const l = s.latest, dsc = AG.desc[s.code] || {};
-    const rows = s.surveys.slice().reverse().map((x) => `<tr><td>${x.SITEYEARMO || ymd(x.SITEDATE).slice(0, 4)}</td><td>${x.LCAVG != null ? x.LCAVG.toFixed(1) + '%' : '—'}</td><td>${x.FMAAVG != null ? x.FMAAVG.toFixed(1) + '%' : '—'}</td><td>${x.RHI ? `<span class="clar"><i style="background:${RHI_COL[x.RHI]}"></i>${x.RHI} ${RHI_LAB[x.RHI]}</span>${x._fishOnly ? ' <span style="color:var(--muted);font-size:10px">fish only</span>' : ''}` : '—'}</td></tr>`).join('');
+    const rows = s.surveys.slice().reverse().map((x) => `<tr><td>${x.SITEYEARMO || ymd(x.SITEDATE).slice(0, 4)}</td><td>${x.LCAVG != null ? x.LCAVG.toFixed(1) + '%' : 'n/a'}</td><td>${x.FMAAVG != null ? x.FMAAVG.toFixed(1) + '%' : 'n/a'}</td><td>${x.RHI ? `<span class="clar"><i style="background:${RHI_COL[x.RHI]}"></i>${x.RHI} ${RHI_LAB[x.RHI]}</span>${x._fishOnly ? ' <span style="color:var(--muted);font-size:10px">fish only</span>' : ''}` : 'n/a'}</td></tr>`).join('');
     const fishNote = !s.hasBenthic ? '<div class="v" style="color:#ffb36b;font-size:12px;margin-top:4px">Fish-only survey: no benthic transects, so this RHI reflects fish biomass only.</div>'
       : s.latestAny !== s.latest ? `<div class="v" style="color:var(--muted);font-size:11px;margin-top:4px">A later fish-only survey (${s.latestAny.SITEYEARMO}) is listed below.</div>` : '';
     const pts = s.surveys.filter((x) => x.LCAVG != null).map((x) => ({ t: x.SITEDATE, a: (x.LCAVG || 0) / 100, b: x.FMAAVG != null ? x.FMAAVG / 100 : null }));
@@ -451,9 +502,9 @@
       <div class="v" style="color:var(--muted)">AGRRA benthic survey site · ${esc(l.COUNTRYNAM || '')} · ${s.surveys.length} survey${s.surveys.length > 1 ? 's' : ''}</div>
       <div class="k">Latest ${s.hasBenthic ? 'benthic ' : ''}survey · ${ymd(l.SITEDATE)}</div>
       <table class="ctab"><tr><th>Live coral</th><th>Fleshy macroalgae</th><th>Reef Health Index</th></tr>
-      <tr><td><b>${l.LCAVG != null ? l.LCAVG.toFixed(1) + '%' : '—'}</b></td><td><b>${l.FMAAVG != null ? l.FMAAVG.toFixed(1) + '%' : '—'}</b></td><td>${l.RHI ? `<span class="clar"><i style="background:${RHI_COL[l.RHI]}"></i>${l.RHI} · ${RHI_LAB[l.RHI]}</span>` : '—'}${l.RHIAVG ? ` <span style="color:var(--muted);font-size:11px">(avg ${l.RHIAVG})</span>` : ''}</td></tr></table>
+      <tr><td><b>${l.LCAVG != null ? l.LCAVG.toFixed(1) + '%' : 'n/a'}</b></td><td><b>${l.FMAAVG != null ? l.FMAAVG.toFixed(1) + '%' : 'n/a'}</b></td><td>${l.RHI ? `<span class="clar"><i style="background:${RHI_COL[l.RHI]}"></i>${l.RHI} · ${RHI_LAB[l.RHI]}</span>` : 'n/a'}${l.RHIAVG ? ` <span style="color:var(--muted);font-size:11px">(avg ${l.RHIAVG})</span>` : ''}</td></tr></table>
       <table class="ctab" style="margin-top:4px"><tr><th>Bleached</th><th>Diseased</th><th>Coral recruits</th><th>CCA</th><th>Diadema</th></tr>
-      <tr><td>${l.CORALBLCH != null ? l.CORALBLCH.toFixed(1) + '%' : '—'}</td><td>${l.CORALDIS != null ? l.CORALDIS.toFixed(1) + '%' : '—'}</td><td>${l.RECRUITS != null ? (+l.RECRUITS).toFixed(1) + '/m²' : '—'}</td><td>${l.CCA != null ? (+l.CCA).toFixed(1) + '%' : '—'}</td><td>${l.DIADEMA != null ? (+l.DIADEMA).toFixed(2) + '/m²' : '—'}</td></tr></table>
+      <tr><td>${l.CORALBLCH != null ? l.CORALBLCH.toFixed(1) + '%' : 'n/a'}</td><td>${l.CORALDIS != null ? l.CORALDIS.toFixed(1) + '%' : 'n/a'}</td><td>${l.RECRUITS != null ? (+l.RECRUITS).toFixed(1) + '/m²' : 'n/a'}</td><td>${l.CCA != null ? (+l.CCA).toFixed(1) + '%' : 'n/a'}</td><td>${l.DIADEMA != null ? (+l.DIADEMA).toFixed(2) + '/m²' : 'n/a'}</td></tr></table>
       ${fishNote}
       ${dsc.depth || descTxt ? `<div class="k">Site</div><div class="v">${dsc.depth ? `Survey depth ${dsc.depth} m (2021)` : ''}${dsc.depth && descTxt ? ' · ' : ''}${descTxt}</div>` : ''}
       ${pts.length > 1 ? `<div class="k">Over time: <span style="color:#ff8c1a">live coral</span> · <span style="color:#3ddc6a">macroalgae</span></div>${sparkSVG(pts, [['a', '#ff8c1a'], ['b', '#3ddc6a']], 280, 70)}` : ''}
@@ -466,7 +517,7 @@
       const r = s.hasBenthic ? s.latest.RHI : null;
       L.circleMarker(s.ll, { pane: 'agrra', radius: 6.5, color: '#0b1724', weight: 1.5, fillColor: RHI_COL[r] || '#9aa7b4', fillOpacity: 0.95, bubblingMouseEvents: false })
         .bindPopup(() => benthicPopup(s), { maxWidth: 340 })
-        .bindTooltip(s.hasBenthic ? `${s.name}: coral ${s.latest.LCAVG != null ? s.latest.LCAVG.toFixed(0) + '%' : '—'}, RHI ${r || '—'} (${ymd(s.latest.SITEDATE).slice(0, 4)})` : `${s.name}: fish-only survey (${ymd(s.latest.SITEDATE).slice(0, 4)})`, { direction: 'top' }).addTo(agBenthic);
+        .bindTooltip(s.hasBenthic ? `${s.name}: coral ${s.latest.LCAVG != null ? s.latest.LCAVG.toFixed(0) + '%' : 'n/a'}, RHI ${r || 'n/a'} (${ymd(s.latest.SITEDATE).slice(0, 4)})` : `${s.name}: fish-only survey (${ymd(s.latest.SITEDATE).slice(0, 4)})`, { direction: 'top' }).addTo(agBenthic);
     });
     AG.health.forEach((g) => {
       const rad = 4 + Math.min(5, Math.log10(Math.max(10, g.colonies)) * 1.6);
@@ -478,16 +529,16 @@
       const p = f.properties, ll = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
       L.circleMarker(ll, { pane: 'agrra', radius: 5, color: '#ffffff', weight: 2, fill: false, dashArray: '2 2', bubblingMouseEvents: false })
         .bindPopup(`<div class="pp"><h3>${esc(p.Name || p.Code || 'AGRRA site')}</h3><div class="v" style="color:var(--muted)">AGRRA Belize 2023 survey site ${esc(p.Code || '')}</div>
-          <div class="k">Reef</div><div class="v">${esc([p.Reef_Zone, p.Reef_Habitat, p.Reef_Type, p.Reef_Inclination].filter((x) => x && x !== 'Unknown').join(' · ') || '—')}</div>
+          <div class="k">Reef</div><div class="v">${esc([p.Reef_Zone, p.Reef_Habitat, p.Reef_Type, p.Reef_Inclination].filter((x) => x && x !== 'Unknown').join(' · ') || 'n/a')}</div>
           <div class="k">Transects</div><div class="v">benthic ${p.Benthic_Transects || 0} · coral ${p.Coral_Transects || 0} · fish ${p.Fish_Transects || 0}</div>
-          <div class="v" style="margin-top:6px;color:var(--muted);font-size:11px">2023 results aren’t in the public layers yet.</div></div>`, { maxWidth: 300 }).addTo(ag23);
+          <div class="v" style="margin-top:6px;color:var(--muted);font-size:11px">The 2023 results are not yet in the public AGRRA services.</div></div>`, { maxWidth: 300 }).addTo(ag23);
     });
     const nH = AG.health.reduce((a, g) => a + g.surveys.length, 0), nC = AG.health.reduce((a, g) => a + g.colonies, 0);
     const nB = AG.benthic.reduce((a, s) => a + s.surveys.length, 0);
     const nF = AG.benthic.reduce((a, s) => a + s.surveys.filter((x) => x._fishOnly).length, 0);
     const el = document.getElementById('agStatus');
     if (!el) return;
-    if (!AG.live && !window.AGRRA) { el.textContent = AG.status ? 'AGRRA data couldn’t be loaded just now (' + AG.status + '). Reload to try again.' : 'Loading AGRRA data…'; return; }
+    if (!AG.live && !window.AGRRA) { el.textContent = AG.status ? 'AGRRA data could not be loaded (' + AG.status + '). Reload the page to try again.' : 'Loading AGRRA data…'; return; }
     el.innerHTML = `${AG.live ? '<b style="color:#7ee0a0">Live</b> from AGRRA, fetched ' + new Date().toLocaleString() : 'Saved copy from ' + window.AGRRA.retrieved + (AG.status ? ' (' + esc(AG.status) + ')' : '')}.<br>Benthic: ${nB} surveys at ${AG.benthic.length} sites (${nF} fish-only). Coral health: ${nH} approved surveys at ${AG.health.length} locations, ${nC.toLocaleString()} colonies.`;
   }
   // Built from AGRRA's 2021 RHI sites (depth) and Belize 2023 survey layer (reef descriptors)
@@ -510,7 +561,7 @@
   function agrraNearHTML(lat, lon) {
     if (!AG.benthic.length && !AG.health.length) return '';
     const { b, h } = nearestAgrra(lat, lon), lim = 10;
-    const bt = b && b.d <= lim ? `${esc(b.s.name)} (${b.d.toFixed(1)} km): coral ${b.s.latest.LCAVG != null ? b.s.latest.LCAVG.toFixed(0) + '%' : '—'}, macroalgae ${b.s.latest.FMAAVG != null ? b.s.latest.FMAAVG.toFixed(0) + '%' : '—'}, RHI ${b.s.latest.RHI ? b.s.latest.RHI + ' ' + RHI_LAB[b.s.latest.RHI] : '—'} (${ymd(b.s.latest.SITEDATE).slice(0, 4)})` : 'none within 10 km';
+    const bt = b && b.d <= lim ? `${esc(b.s.name)} (${b.d.toFixed(1)} km): coral ${b.s.latest.LCAVG != null ? b.s.latest.LCAVG.toFixed(0) + '%' : 'n/a'}, macroalgae ${b.s.latest.FMAAVG != null ? b.s.latest.FMAAVG.toFixed(0) + '%' : 'n/a'}, RHI ${b.s.latest.RHI ? b.s.latest.RHI + ' ' + RHI_LAB[b.s.latest.RHI] : 'n/a'} (${ymd(b.s.latest.SITEDATE).slice(0, 4)})` : 'none within 10 km';
     const q = h && h.g.latestQ;
     const ht = h && h.d <= lim ? `${esc(h.g.name)} (${h.d.toFixed(1)} km): ${q ? `bleached ${pct(q._s.bleach)}, SCTLD ${pct(q._s.sctld)} (${ymd(q.obs_dateTime)})` : 'qualitative only'}` : 'none within 10 km';
     return `<div class="k">Nearest reef monitoring (AGRRA)</div><div class="v" style="font-size:12px">Benthic: ${bt}<br>Coral health: ${ht}</div>`;
@@ -570,33 +621,33 @@
     let len = 0; for (let i = 1; i < coords.length; i++) len += hav(coords[i - 1], coords[i]);
     const reef = wps.find((w) => w.properties.node === 'reef');
     const rl = [reef.properties.lat, reef.properties.lon];
-    const nodeRows = wps.map((w) => `<tr><td style="padding-right:8px;text-transform:capitalize">${w.properties.node}</td><td style="font-family:ui-monospace,Consolas,monospace;font-size:12px">${fmt(w.properties.lat)}, ${fmt(w.properties.lon)}</td></tr>`).join('');
+    const nodeRows = wps.map((w) => `<tr><td style="padding-right:8px;text-transform:capitalize">${w.properties.node === 'reef' ? 'coral' : w.properties.node}</td><td style="font-family:ui-monospace,Consolas,monospace;font-size:12px">${fmt(w.properties.lat)}, ${fmt(w.properties.lon)}</td></tr>`).join('');
     const popup = () => `<div class="pp"><h3>${cid} · ${esc(t.properties.name)}</h3>
-      <div class="k">Protection</div><div class="v">${esc(protection)}</div>
-      <div class="k">Reef–mangrove connectivity</div><div class="v"><span class="sw" style="background:${CONN_COL[connCls]};width:10px;height:10px;display:inline-block;margin-right:5px"></span>${esc(connTxt.slice(2))}</div>
-      <div class="k">Transect length · reef node from Punta Gorda</div><div class="v">${len.toFixed(2)} km · ${hav(PG, rl).toFixed(1)} km</div>
-      <div class="k">Nodes</div><table class="v" style="border-collapse:collapse">${nodeRows}</table>
-      ${siteClarityHTML(cid + '-reef', { label: 'reef node' })}
-      ${depthHTML(rl[0], rl[1], 'Regional depth at reef node', true)}
+      <div class="k">Protection</div><div class="v">${esc(protectionLabel(protection))}</div>
+      <div class="k">Coral to mangrove connectivity</div><div class="v"><span class="sw" style="background:${CONN_COL[connCls]};width:10px;height:10px;display:inline-block;margin-right:5px"></span>${esc(connectivityLabel(connTxt))}</div>
+      <div class="k">Transect length · coral point from Punta Gorda</div><div class="v">${len.toFixed(2)} km · ${hav(PG, rl).toFixed(1)} km</div>
+      <div class="k">Points</div><table class="v" style="border-collapse:collapse">${nodeRows}</table>
+      ${siteClarityHTML(cid + '-reef', { label: 'coral point' })}
+      ${depthHTML(rl[0], rl[1], 'Regional depth at coral point', true)}
       ${agrraNearHTML(rl[0], rl[1])}
-      ${siteStat(cid + '-seagrass') && siteStat(cid + '-seagrass').all ? `<div class="k">Seagrass node · ${SEASON_LABEL[season]}</div><div class="v">${chip((siteStat(cid + '-seagrass')[season] || siteStat(cid + '-seagrass').all).med)}</div>` : ''}
+      ${siteStat(cid + '-seagrass') && siteStat(cid + '-seagrass').all ? `<div class="k">Seagrass point · ${SEASON_LABEL[season]}</div><div class="v">${chip((siteStat(cid + '-seagrass')[season] || siteStat(cid + '-seagrass').all).med)}</div>` : ''}
       ${actions(cid, rl[0], rl[1])}</div>`;
     const casing = L.polyline(coords, { color: '#0b1724', weight: 6, opacity: 0.7, interactive: false });
     const line = L.polyline(coords, { color: '#ffffff', weight: 3, bubblingMouseEvents: false }).bindPopup(popup, { maxWidth: 320 });
     const markers = wps.map((w) => L.marker([w.properties.lat, w.properties.lon], { icon: nodeIcon(w.properties.node), riseOnHover: true })
-      .bindPopup(popup, { maxWidth: 320 }).bindTooltip(`${cid} ${w.properties.node}`, { direction: 'top', offset: [0, -8] }));
+      .bindPopup(popup, { maxWidth: 320 }).bindTooltip(`${cid} ${w.properties.node === 'reef' ? 'coral' : w.properties.node} point`, { direction: 'top', offset: [0, -8] }));
     const label = L.marker(rl, { icon: L.divIcon({ className: '', iconSize: [0, 0] }), interactive: false })
       .bindTooltip(cid, { permanent: true, direction: 'right', offset: [10, 0], className: 'lbl c' });
     const g = L.layerGroup([casing, line, ...markers, label]).addTo(corridorGroup);
     registry.push({
-      id: cid, stat: cid + '-reef', type: 'C', name: t.properties.name, sub: `Corridor · ${connTxt.slice(2)}`, prot: protClassC(protection), protLabel: protection,
+      id: cid, stat: cid + '-reef', type: 'C', name: t.properties.name, sub: `Corridor · ${connectivityLabel(connTxt)}`, prot: protClassC(protection), protLabel: protectionLabel(protection),
       lat: rl[0], lon: rl[1], bounds: L.latLngBounds(coords).pad(0.6), open: () => markers[2] ? markers.find((m, i) => wps[i].properties.node === 'reef').openPopup() : line.openPopup(),
-      nodes: wps.map((w) => ({ node: w.properties.node, lat: w.properties.lat, lon: w.properties.lon })), notes: `Connectivity ${connTxt.slice(2)}; transect ${len.toFixed(2)} km`
+      nodes: wps.map((w) => ({ node: w.properties.node, lat: w.properties.lat, lon: w.properties.lon })), notes: `Connectivity ${connectivityLabel(connTxt)}; transect ${len.toFixed(2)} km`
     });
   });
   LYR.corr1 = () => corridorGroup;
 
-  // ---------- revised, clarity-screened corridors R1–Rn ----------
+  // ---------- clarity-screened sites R1 to R13 ----------
   const RV = window.REVISED;
   const revGroup = L.layerGroup();
   const REGION_COL = { 'Central Port Honduras': '#ffd23f', 'Inshore near Punta Gorda': '#ffb36b', 'Sapodilla Cayes': '#7ee0ff', 'Northern lagoon (Placencia base)': '#c3a6ff' };
@@ -617,35 +668,35 @@
       return `<tr><td>${nodeName[n]}</td><td style="font-family:ui-monospace,Consolas,monospace;font-size:12px">${fmt(pts[n][0])}, ${fmt(pts[n][1])}</td><td>${v ? chip(v.med) : '<span style="color:var(--muted);font-size:11px">intertidal</span>'}</td></tr>`;
     }).join('');
     const popup = () => `<div class="pp"><h3>${s.id} · ${esc(s.near)} area</h3>
-      <div class="v" style="color:${REGION_COL[s.region]}">${esc(s.region)}</div>
+      <div class="v" style="color:${REGION_COL[s.region]}">${esc(regionLabel(s.region))}</div>
       <div class="k">Suitability score</div><div class="v"><b style="font-size:16px">${s.total.toFixed(2)}</b> / 1 <span style="color:var(--muted);font-size:11px">(clarity-weighted, see About)</span></div>
       <table class="ctab">${bars}</table>
-      <div class="k">Protection · connectivity</div><div class="v">${esc(s.prot)} · ${esc(s.conn)} (reef–mangrove ${s.drm.toFixed(2)} km)</div>
-      <div class="k">Nodes · ${SEASON_LABEL[season]} median turbidity</div><table class="ctab">${nodeRows}</table>
-      <div class="k">Habitat in reach</div><div class="v">${s.coral_ha} ha coral/algae within 400 m of the coral node · ${s.sg_ha} ha seagrass within 300 m of the seagrass node · ${s.mang_ha} ha mangrove within 500 m${/v4\.1/.test(s.msrc) ? ' <span style="color:var(--muted);font-size:11px">(mangrove from the v4.1 scouting point; not in GMW v3)</span>' : ''}</div>
-      <div class="k">Access</div><div class="v">${s.dpg} km from Punta Gorda · ${s.dab} km from Abalone Caye ranger stn</div>
-      ${siteClarityHTML(s.id + '-reef', { label: 'coral node' })}
-      ${depthHTML(s.reef[0], s.reef[1], 'Regional depth at coral node', true)}
+      <div class="k">Protection · connectivity</div><div class="v">${esc(protectionLabel(s.prot))} · ${esc(connectivityLabel(s.conn))}; coral to mangrove ${s.drm.toFixed(2)} km</div>
+      <div class="k">Points · ${SEASON_LABEL[season]} median turbidity</div><table class="ctab">${nodeRows}</table>
+      <div class="k">Habitat in reach</div><div class="v">${s.coral_ha} ha coral/algae within 400 m of the coral point · ${s.sg_ha} ha seagrass within 300 m of the seagrass point · ${s.mang_ha} ha mangrove within 500 m${/v4\.1/.test(s.msrc) ? ' <span style="color:var(--muted);font-size:11px">(mangrove point from the Global Mangrove Watch v4.1 first-pass scouting; not mapped in v3)</span>' : ''}</div>
+      <div class="k">Access</div><div class="v">${s.dpg} km from Punta Gorda · ${s.dab} km from Abalone Caye ranger station</div>
+      ${siteClarityHTML(s.id + '-reef', { label: 'coral point' })}
+      ${depthHTML(s.reef[0], s.reef[1], 'Regional depth at coral point', true)}
       ${agrraNearHTML(s.reef[0], s.reef[1])}
       ${actions(s.id, s.reef[0], s.reef[1])}</div>`;
     const ll = ['mangrove', 'seagrass', 'reef'].map((n) => pts[n]);
-    // site-area halo so the three nodes read as one site
+    // dashed circle so the three points read as one site
     const b = L.latLngBounds(ll), ctr = b.getCenter();
     const rad = Math.max(...ll.map((p) => map.distance(ctr, p))) + 120;
     const halo = L.circle(ctr, { radius: rad, color: REGION_COL[s.region], weight: 1.5, dashArray: '4 4', fillColor: REGION_COL[s.region], fillOpacity: 0.06, interactive: false });
     const casing = L.polyline(ll, { color: '#0b1724', weight: 6, opacity: 0.7, interactive: false });
     const line = L.polyline(ll, { color: REGION_COL[s.region], weight: 3, bubblingMouseEvents: false }).bindPopup(popup, { maxWidth: 340 });
     const markers = ['mangrove', 'seagrass', 'reef'].map((n) => L.marker(pts[n], { icon: bigNodeIcon(n), riseOnHover: true, zIndexOffset: n === 'mangrove' ? 300 : n === 'seagrass' ? 200 : 100 })
-      .bindPopup(popup, { maxWidth: 340 }).bindTooltip(`${s.id} ${nodeName[n].toLowerCase()} node`, { direction: 'top', offset: [0, -10] }));
+      .bindPopup(popup, { maxWidth: 340 }).bindTooltip(`${s.id} ${nodeName[n].toLowerCase()} point`, { direction: 'top', offset: [0, -10] }));
     const label = L.marker(s.reef, { icon: L.divIcon({ className: '', iconSize: [0, 0] }), interactive: false })
       .bindTooltip(s.id, { permanent: true, direction: 'right', offset: [12, 0], className: 'lbl rv' });
     L.layerGroup([halo, casing, line, ...markers, label]).addTo(revGroup);
     registry.push({
-      id: s.id, stat: s.id + '-reef', type: 'R', score: s.total, name: `${s.near} area`, sub: `${s.region} · ${s.conn} · score ${s.total.toFixed(2)}`,
-      prot: /no-take/i.test(s.prot) ? 'notake' : s.prot === 'unprotected' ? 'none' : 'mpa', protLabel: s.prot, lat: s.reef[0], lon: s.reef[1],
-      bounds: L.latLngBounds(ll).pad(0.6), open: () => markers[2].openPopup(), search: s.region + ' ' + s.near,
+      id: s.id, stat: s.id + '-reef', type: 'R', score: s.total, name: `${s.near} area`, sub: `${regionLabel(s.region)} · ${connectivityLabel(s.conn)} · score ${s.total.toFixed(2)}`,
+      prot: /no-take/i.test(s.prot) ? 'notake' : s.prot === 'unprotected' ? 'none' : 'mpa', protLabel: protectionLabel(s.prot), lat: s.reef[0], lon: s.reef[1],
+      bounds: L.latLngBounds(ll).pad(0.6), open: () => markers[2].openPopup(), search: regionLabel(s.region) + ' ' + s.near,
       nodes: ['mangrove', 'seagrass', 'reef'].map((n) => ({ node: n, lat: pts[n][0], lon: pts[n][1] })),
-      notes: `Clarity-screened corridor; score ${s.total}; ${s.conn}; coral ${s.coral_ha} ha, seagrass ${s.sg_ha} ha, mangrove ${s.mang_ha} ha in reach`
+      notes: `Clarity-screened site; score ${s.total}; ${connectivityLabel(s.conn)}; coral ${s.coral_ha} ha, seagrass ${s.sg_ha} ha, mangrove ${s.mang_ha} ha in reach`
     });
   });
   LYR.rcorr = () => revGroup;
@@ -656,12 +707,12 @@
   S.mangrove_loss_candidates.features.forEach((f) => {
     const p = f.properties, col = assessCol(p.assessment);
     const popup = () => `<div class="pp"><h3>${p.Name} · mangrove plot candidate</h3>
-      <div class="k">Assessment</div><div class="v">${esc(p.assessment)}</div>
-      <div class="k">Apparent loss 2015→2025 (GMW v4.1)</div><div class="v">${p.ha} ha</div>
+      <div class="k">Assessment</div><div class="v">${esc(assessment(p.assessment)[1])}</div>
+      <div class="k">Apparent loss, 2015 to 2025 (Global Mangrove Watch v4.1)</div><div class="v">${p.ha} ha</div>
       <div class="k">Protected area / tenure</div><div class="v">${esc(p.protected_area)}</div>
       <div class="k">From Punta Gorda</div><div class="v">${p.km_PG} km (straight line)</div>
       <div class="k">Centroid</div><div class="v" style="font-family:ui-monospace,Consolas,monospace;font-size:12px">${fmt(p.lat)}, ${fmt(p.lon)}</div>
-      ${siteClarityHTML(p.Name, { label: 'adjacent water', extra: 'For mangrove plots, turbid water also means sediment supply, which helps seedlings establish. It only limits diving where the plot is reached by water.' })}
+      ${siteClarityHTML(p.Name, { label: 'adjacent water', extra: 'For mangrove plots, turbid water also indicates sediment supply, which can support seedling establishment; it limits diving only where the plot is reached by water.' })}
       ${actions(p.Name, p.lat, p.lon)}</div>`;
     const poly = L.geoJSON(f, { pane: 'sitepoly', style: { color: col, weight: 2, fillColor: col, fillOpacity: 0.35 }, bubblingMouseEvents: false });
     poly.bindPopup(popup, { maxWidth: 320 });
@@ -669,8 +720,8 @@
       .bindTooltip(p.Name, { permanent: true, direction: 'right', offset: [8, 0], className: 'lbl m' });
     L.layerGroup([poly, mk]).addTo(mangGroup);
     const prot = /^none/i.test(p.protected_area) ? 'none' : 'terr';
-    registry.push({ id: p.Name, stat: p.Name, type: 'M', name: assessShort(p.assessment), sub: `${p.ha} ha · ${p.protected_area.split(';')[0]}`, prot, protLabel: p.protected_area,
-      lat: p.lat, lon: p.lon, bounds: poly.getBounds().pad(2.5), open: () => mk.openPopup(), notes: `${p.assessment}; ${p.ha} ha apparent loss 2015-2025 (GMW v4.1)`, search: p.assessment + ' ' + p.protected_area });
+    registry.push({ id: p.Name, stat: p.Name, type: 'M', name: assessment(p.assessment)[0], sub: `${p.ha} ha · ${p.protected_area.split(';')[0]}`, prot, protLabel: p.protected_area,
+      lat: p.lat, lon: p.lon, bounds: poly.getBounds().pad(2.5), open: () => mk.openPopup(), notes: `${assessment(p.assessment)[1]} ${p.ha} ha apparent loss, 2015 to 2025 (Global Mangrove Watch v4.1)`, search: p.assessment + ' ' + p.protected_area });
   });
   LYR.mcand = () => mangGroup;
 
@@ -680,8 +731,8 @@
     const p = f.properties, nt = /no-take/i.test(p.zone), col = nt ? '#00e5ff' : '#ffffff';
     const popup = () => `<div class="pp"><h3>${p.Name} · seagrass plot candidate</h3>
       <div class="k">Bare patch inside seagrass</div><div class="v">${p.ha} ha · ${(p.sg_frac_ring * 100).toFixed(0)}% of surrounding ring is seagrass</div>
-      <div class="k">Zone</div><div class="v">${esc(p.zone === 'PHMR' ? 'PHMR general use' : p.zone)}</div>
-      <div class="k">Distance</div><div class="v">${p.km_Abalone} km from Abalone Caye ranger stn · ${p.km_PG} km from Punta Gorda</div>
+      <div class="k">Zone</div><div class="v">${esc(protectionLabel(p.zone))}</div>
+      <div class="k">Distance</div><div class="v">${p.km_Abalone} km from Abalone Caye ranger station · ${p.km_PG} km from Punta Gorda</div>
       <div class="k">Centroid</div><div class="v" style="font-family:ui-monospace,Consolas,monospace;font-size:12px">${fmt(p.lat)}, ${fmt(p.lon)}</div>
       ${siteClarityHTML(p.Name, { extra: 'The bare sand in the gap reflects light and may inflate the reading at this shallow site.' })}
       ${actions(p.Name, p.lat, p.lon)}</div>`;
@@ -690,8 +741,8 @@
     const mk = L.marker([p.lat, p.lon], { icon: diamond('rgba(11,23,36,.6)', col, 14), riseOnHover: true }).bindPopup(popup, { maxWidth: 320 })
       .bindTooltip(p.Name, { permanent: true, direction: 'left', offset: [-7, 0], className: 'lbl s' });
     L.layerGroup([poly, mk]).addTo(sgGroup);
-    registry.push({ id: p.Name, stat: p.Name, type: 'S', name: `Bare patch ${p.ha} ha in seagrass`, sub: `${p.km_Abalone} km from Abalone · ${p.zone === 'PHMR' ? 'PHMR general use' : p.zone}`,
-      prot: nt ? 'notake' : 'mpa', protLabel: p.zone === 'PHMR' ? 'PHMR general use' : p.zone, lat: p.lat, lon: p.lon, bounds: poly.getBounds().pad(8),
+    registry.push({ id: p.Name, stat: p.Name, type: 'S', name: `Bare patch ${p.ha} ha in seagrass`, sub: `${p.km_Abalone} km from Abalone · ${protectionLabel(p.zone)}`,
+      prot: nt ? 'notake' : 'mpa', protLabel: protectionLabel(p.zone), lat: p.lat, lon: p.lon, bounds: poly.getBounds().pad(8),
       open: () => mk.openPopup(), notes: `Bare patch ${p.ha} ha; ${(p.sg_frac_ring * 100).toFixed(0)}% seagrass in surrounding ring; ${p.km_Abalone} km from Abalone Caye` });
   });
   LYR.scand = () => sgGroup;
@@ -700,30 +751,30 @@
   const sw = (bg, extra) => `<span class="sw" style="background:${bg};${extra || ''}"></span>`;
   const DEF = {
     'lyr-sites': [
-      ['rcorr', false, 'Clarity-screened sites R1–R13', 'Each site: mangrove ▲, seagrass ■, coral ● nodes inside a dashed site circle', sw('#ffd23f', 'height:3px'), `<span>${sw(C.mangrove)}mangrove</span><span>${sw(C.seagrass)}seagrass</span><span>${sw(C.coral)}coral</span><br><span>${sw('#ffd23f')}central PHMR</span><span>${sw('#ffb36b')}inshore</span><span>${sw('#7ee0ff')}Sapodilla</span><span>${sw('#c3a6ff')}north lagoon</span>`],
-      ['corr1', false, 'Original corridors C1–C11', 'First scouting pass, before clarity screening', sw('#fff', 'height:3px')],
-      ['mcand', false, 'Mangrove plot candidates M1–M12', 'Apparent 2015→2025 loss patches', sw('#ff3b30', 'transform:rotate(45deg);width:11px;height:11px'), `<span>${sw('#ff3b30')}priority</span><span>${sw('#ffcc00')}verify: ecotone</span><span>${sw('#c9a7ff')}verify: tenure</span><span>${sw('#8fa6bd')}remote</span>`],
-      ['scand', false, 'Seagrass plot candidates S1–S10', 'Bare patches within seagrass', sw('transparent', 'border:2px solid #fff;transform:rotate(45deg);width:10px;height:10px'), `<span>${sw('#00e5ff')}no-take zone</span><span>${sw('#fff')}general use</span>`]
+      ['rcorr', false, 'Clarity-screened sites R1 to R13', 'Each site: mangrove ▲, seagrass ■ and coral ● points within a dashed circle', sw('#ffd23f', 'height:3px'), `<span>${sw(C.mangrove)}mangrove</span><span>${sw(C.seagrass)}seagrass</span><span>${sw(C.coral)}coral</span><br><span>${sw('#ffd23f')}central PHMR</span><span>${sw('#ffb36b')}inshore</span><span>${sw('#7ee0ff')}Sapodilla</span><span>${sw('#c3a6ff')}north lagoon</span>`],
+      ['corr1', false, 'First-pass corridors C1 to C11', 'Before clarity screening', sw('#fff', 'height:3px')],
+      ['mcand', false, 'Mangrove plot candidates M1 to M12', 'Apparent loss, 2015 to 2025', sw('#ff3b30', 'transform:rotate(45deg);width:11px;height:11px'), `<span>${sw('#ff3b30')}priority</span><span>${sw('#ffcc00')}verify: ecotone</span><span>${sw('#c9a7ff')}verify: tenure</span><span>${sw('#8fa6bd')}remote</span>`],
+      ['scand', false, 'Seagrass plot candidates S1 to S10', 'Bare patches within seagrass', sw('transparent', 'border:2px solid #fff;transform:rotate(45deg);width:10px;height:10px'), `<span>${sw('#00e5ff')}no-take zone</span><span>${sw('#fff')}general use</span>`]
     ],
     'lyr-hab': [
       ['seagrass', false, 'Seagrass', 'Allen Coral Atlas benthic', sw(C.seagrass)],
       ['coral', false, 'Coral/Algae hard bottom', 'Allen Coral Atlas benthic', sw(C.coral)],
-      ['conn', false, 'Reef–mangrove connectivity', 'Coral/Algae coloured by distance to nearest mangrove', sw(`linear-gradient(90deg,${C.tight},${C.inter},${C.loose},${C.disc})`), `<span>${sw(C.tight)}&lt;1 km</span><span>${sw(C.inter)}1–5</span><span>${sw(C.loose)}5–15</span><span>${sw(C.disc)}&gt;15 km</span>`],
+      ['conn', false, 'Coral to mangrove connectivity', 'Coral/algae colored by distance to the nearest mangrove', sw(`linear-gradient(90deg,${C.tight},${C.inter},${C.loose},${C.disc})`), `<span>${sw(C.tight)}&lt;1 km</span><span>${sw(C.inter)}1 to 5</span><span>${sw(C.loose)}5 to 15</span><span>${sw(C.disc)}&gt;15 km</span>`],
       ['mang', false, 'Mangrove extent 2020', 'Global Mangrove Watch v3', sw(C.mangrove)],
-      ['mchange', false, 'Mangrove change 2010→2020', 'GMW v3: loss and gain', sw(`linear-gradient(90deg,${C.mloss} 50%,${C.mgain} 50%)`), `<span>${sw(C.mloss)}loss</span><span>${sw(C.mgain)}gain</span>`]
+      ['mchange', false, 'Mangrove change, 2010 to 2020', 'Global Mangrove Watch v3: loss and gain', sw(`linear-gradient(90deg,${C.mloss} 50%,${C.mgain} 50%)`), `<span>${sw(C.mloss)}loss</span><span>${sw(C.mgain)}gain</span>`]
     ],
     'lyr-water': [
       ['rivers', false, 'Rivers, creeks and mouths', 'OpenStreetMap · ▼ = mouth', sw('#6ec6ff', 'height:3px')],
-      ['turb', false, 'Median turbidity (sea)', 'Sentinel-2 2020–25, 120 m · uses season and opacity below', sw('linear-gradient(90deg,#10408c,#28b9c8,#f0dc5a,#f59628,#6e3214)')],
+      ['turb', false, 'Median turbidity (sea)', 'Sentinel-2, 2020 to 2025, 120 m · uses the season and opacity below', sw('linear-gradient(90deg,#10408c,#28b9c8,#f0dc5a,#f59628,#6e3214)')],
       ['freq', false, 'How often it’s murky (sea)', 'Share of clear-sky days above 5 FNU · uses season and opacity below', sw('linear-gradient(90deg,rgba(255,230,150,.4),#f06420,#78002a)')]
     ],
     'lyr-depth': [
-      ['bathy', false, 'Bathymetry (colour)', 'Regional depth grid, ~460 m cells · NOAA NCEI DEM mosaic', sw('linear-gradient(90deg,#d6f4fa,#58b6de,#1c58a0,#051234)')],
+      ['bathy', false, 'Bathymetry (color)', 'Regional depth grid, about 460 m cells · NOAA NCEI DEM Global Mosaic', sw('linear-gradient(90deg,#d6f4fa,#58b6de,#1c58a0,#051234)')],
       ['iso', false, 'Depth contours', '2, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000 m · hover for depth', sw('transparent', 'border-top:2px solid #fff;height:6px;border-radius:0')]
     ],
     'lyr-agrra': [
-      ['agh', false, 'Coral health surveys', 'Bleaching and disease, 2017–2026 · colour = latest survey', sw('#fc8d59', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #fff'), `<span id="hlLegend"></span>`],
-      ['agb', false, 'Benthic surveys (Reef Health Index)', 'Live coral, macroalgae, RHI · 2011–2021', sw('#f2d33a', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #0b1724'), Object.entries({ 1: 'critical', 2: 'poor', 3: 'fair', 4: 'good', 5: 'very good' }).map(([k, v]) => `<span>${sw(RHI_COL[k], 'border-radius:50%')}${v}</span>`).join('') + `<span>${sw('#9aa7b4', 'border-radius:50%')}fish-only survey</span>`],
+      ['agh', false, 'Coral health surveys', 'Bleaching and disease, 2017 to 2026 · color shows the latest survey', sw('#fc8d59', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #fff'), `<span id="hlLegend"></span>`],
+      ['agb', false, 'Benthic surveys (Reef Health Index)', 'Live coral, macroalgae, Reef Health Index · 2011 to 2021', sw('#f2d33a', 'border-radius:50%;width:11px;height:11px;border:1.5px solid #0b1724'), Object.entries({ 1: 'critical', 2: 'poor', 3: 'fair', 4: 'good', 5: 'very good' }).map(([k, v]) => `<span>${sw(RHI_COL[k], 'border-radius:50%')}${v}</span>`).join('') + `<span>${sw('#9aa7b4', 'border-radius:50%')}fish-only survey</span>`],
       ['ag23', false, '2023 survey sites (results pending)', 'Site descriptions only', sw('transparent', 'border-radius:50%;width:10px;height:10px;border:2px dashed #fff')]
     ],
     'lyr-prot': [
@@ -763,8 +814,8 @@
     document.getElementById('turbLegend').innerHTML =
       `<div>Median turbidity, FNU · <b style="color:var(--text)">${SEASON_LABEL[season]}</b></div><div class="bar" style="background:${grad}"></div>
        <div class="ticks">${ticks.map((t) => `<span>${t}</span>`).join('')}</div>
-       <div style="margin-top:3px">&lt;1 very clear · 1–2 clear · 2–5 moderate · 5–10 turbid · &gt;10 plume. <span style="display:inline-block;width:10px;height:10px;background:#c8c8c8;vertical-align:middle;border-radius:2px"></span> optically shallow (bright bottom, excluded)</div>
-       <div style="margin-top:6px">How often murky: <span style="display:inline-block;width:90px;height:8px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg,rgba(255,230,150,.35),#ffb43c 30%,#f06420 50%,#c81e1e 70%,#78002a)"></span> 5% → 80%+ of clear-sky days</div>`;
+       <div style="margin-top:3px">&lt;1 very clear · 1 to 2 clear · 2 to 5 moderate · 5 to 10 turbid · &gt;10 plume water. <span style="display:inline-block;width:10px;height:10px;background:#c8c8c8;vertical-align:middle;border-radius:2px"></span> optically shallow (bright bottom, excluded)</div>
+       <div style="margin-top:6px">How often murky: <span style="display:inline-block;width:90px;height:8px;vertical-align:middle;border-radius:2px;background:linear-gradient(90deg,rgba(255,230,150,.35),#ffb43c 30%,#f06420 50%,#c81e1e 70%,#78002a)"></span> 5% to 80% or more of cloud-free days</div>`;
   }
   function setSeason(s) {
     season = s; store.set('seastrong_season', s);
@@ -789,11 +840,11 @@
   document.getElementById('turbOp').addEventListener('input', (e) => { ensureClarity(); turbOpacity = +e.target.value; turbImg.setOpacity(turbOpacity); freqImg.setOpacity(turbOpacity); });
   updateClarityControls();
 
-  // coral-health colour mode
+  // coral health color mode
   function renderHealthLegend() {
     const L1 = healthMode === 'sctld'
       ? [['#2ca25f', 'none'], ['#ab47bc', '≤5%'], ['#6a1b9a', '>5% of colonies'], ['#9aa7b4', 'qualitative only']]
-      : [['#2ca25f', '<5%'], ['#fee08b', '5–20%'], ['#fc8d59', '20–50%'], ['#d73027', '≥50% bleached'], ['#9aa7b4', 'qualitative only']];
+      : [['#2ca25f', '<5%'], ['#fee08b', '5 to 20%'], ['#fc8d59', '20 to 50%'], ['#d73027', '≥50% bleached'], ['#9aa7b4', 'qualitative only']];
     const el = document.getElementById('hlLegend');
     if (el) el.innerHTML = L1.map(([c, t]) => `<span>${sw(c, 'border-radius:50%')}${t}</span>`).join('');
     document.querySelectorAll('#healthChips button').forEach((b) => b.classList.toggle('on', b.dataset.m === healthMode));
@@ -859,7 +910,13 @@
     map.flyToBounds(r.bounds, { maxZoom: r.type === 'R' ? 16 : 15, duration: 0.8 });
     map.once('moveend', () => r.open());
   }
-  const protBadge = (r) => r.prot === 'notake' ? '<span class="badge nt">no-take</span>' : r.prot === 'none' ? '<span class="badge un">unprotected</span>' : `<span class="badge">${esc(r.protLabel.split(';')[0].replace(' Wetland of International Importance (Ramsar Site)', ''))}</span>`;
+  const shortProtection = (label) => {
+    const t = String(label || '').split(';')[0].replace(' Wetland of International Importance (Ramsar Site)', '');
+    if (/^Port Honduras Marine Reserve, general use/.test(t)) return 'PHMR general use';
+    if (/^Sapodilla Cayes Marine Reserve/.test(t)) return 'Sapodilla Cayes MR';
+    return t;
+  };
+  const protBadge = (r) => r.prot === 'notake' ? '<span class="badge nt">no-take</span>' : r.prot === 'none' ? '<span class="badge un">unprotected</span>' : `<span class="badge">${esc(shortProtection(r.protLabel))}</span>`;
   function renderList() {
     const q = document.getElementById('q').value.trim().toLowerCase(), pf = document.getElementById('protSel').value;
     const cf = document.getElementById('clarSel').value, so = document.getElementById('sortSel').value;
@@ -921,7 +978,7 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   document.getElementById('expCsv').onclick = () => {
-    const rows = [['Scouting ID', 'Ecosystem', 'Site name', 'Area / reserve', 'Latitude (decimal °, WGS84)', 'Longitude (decimal °, WGS84)', 'Protection status & zone', 'Scouting notes',
+    const rows = [['Scouting ID', 'Ecosystem', 'Site name', 'Area / reserve', 'Latitude (decimal degrees, WGS 84)', 'Longitude (decimal degrees, WGS 84)', 'Protection status & zone', 'Scouting notes',
       'Turbidity median FNU: all year', 'Dry Feb-May', 'Wet Jun-Oct', 'Nov-Jan', '% clear-sky days >5 FNU (all year)', 'Nearest river mouth', 'Field notes', 'Map link']];
     const clar = (key) => {
       const st = siteStat(key);
@@ -953,10 +1010,10 @@
   // ---------- figures ----------
   const FIGS = [
     ['01_overview', 'Overview: mangrove, seagrass and reef habitat with protected areas'],
-    ['02_connectivity_corridors', 'Reef–mangrove connectivity and the 11 candidate corridors'],
-    ['03_PHMR_zoom', 'Port Honduras and Punta Gorda: corridors C1–C7'],
-    ['04_offshore_zoom', 'Offshore cayes: corridors C8–C11'],
-    ['05_mangrove_change_restoration', 'Mangrove change 2015–2025 and restoration plot candidates']
+    ['02_connectivity_corridors', 'Coral to mangrove connectivity and the 11 first-pass corridors'],
+    ['03_PHMR_zoom', 'Port Honduras and Punta Gorda: corridors C1 to C7'],
+    ['04_offshore_zoom', 'Offshore cayes: corridors C8 to C11'],
+    ['05_mangrove_change_restoration', 'Mangrove change, 2015 to 2025, and restoration plot candidates']
   ];
   const lb = document.getElementById('lightbox');
   lb.onclick = () => (lb.style.display = 'none');
