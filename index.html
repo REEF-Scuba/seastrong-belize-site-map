@@ -259,7 +259,7 @@ body.web .local-only{display:none}body:not(.web) .web-only{display:none}
       </ul>
 
       <h2>Depth and reef monitoring</h2>
-      <p><b>Bathymetry</b> comes from the NOAA NCEI DEM Global Mosaic. In this area its cells are about 460 m, consistent with the GEBCO 15 arc-second grid. It shows the lagoon floor (half of the lagoon cells are 17 to 36 m deep), the Snake Cayes and Sapodilla shoals and the drop-off east of the barrier reef. It does not resolve reef tops, patch reefs or channels between cayes, so depths at coral points can read several meters too deep.</p>
+      <p><b>Bathymetry</b> comes from the NOAA NCEI DEM Global Mosaic. In this area its cells are about 460 m, consistent with the GEBCO 15 arc-second grid. It shows the lagoon floor (half of the lagoon cells are 17 to 36 m deep), the Snake Cayes and Sapodilla shoals and the drop-off east of the barrier reef. It does not resolve reef tops, patch reefs or channels between cayes, so depths at coral points can read several meters too deep. Over reefs and seagrass the map therefore shows satellite-derived depth from the Allen Coral Atlas, made from Sentinel-2 imagery at 10 m and shown here in 30 m cells (median of the 10 m values). It is limited to seafloor that the Atlas mapped as habitat, excluding areas it classes as deep lagoon, to water with a Sentinel-2 median turbidity of 3 FNU or less, and to depths under 15 m. Outside those limits the method is unreliable: turbid water reads as falsely shallow and optically deep water saturates at 10 to 15 m. The method has been found accurate to within about 1.3 to 2 m (RMSE) in clear water elsewhere (Li et al. 2021) but has not yet been checked in Belize; depths recorded on the pre-visit will provide that check.</p>
       <p><b>AGRRA</b> data come from the public services behind the AGRRA Data Explorer. Benthic surveys give live coral and fleshy macroalgae cover and the Reef Health Index (site-level public results run 2011 to 2021); 17 of them were fish-only, and their index reflects fish indicators alone. Coral health surveys (2017 to 2026) count colonies by condition; recent Placencia-area records are largely Fragments of Hope monitoring. Records marked as not approved are excluded, and surveys with fewer than 10 colonies are treated as qualitative. <span class="local-only">The map loads the latest records when it opens and falls back to a copy saved on 13 October 2026.</span><span class="web-only">The map loads the records live from AGRRA each time it opens; no AGRRA data are stored in this site.</span></p>
 
       <h2>Live imagery</h2>
@@ -282,12 +282,13 @@ body.web .local-only{display:none}body:not(.web) .web-only{display:none}
         <li>Protected areas: UNEP-WCMC and IUCN (2026), Protected Planet: The World Database on Protected and Conserved Areas (WDPCA), October 2026, Cambridge, UK, www.protectedplanet.net. The designations shown imply no opinion on the legal status of any country, territory or area.<span class="web-only"> Boundaries are loaded live from the UNEP-WCMC map service and are not stored in this site.</span></li>
         <li>Turbidity: contains modified Copernicus Sentinel data 2020 to 2025, via Microsoft Planetary Computer.</li>
         <li>Rivers and streams: © OpenStreetMap contributors, ODbL; river mouth positions are approximate.</li>
-        <li>Bathymetry: NOAA NCEI DEM Global Mosaic, retrieved 13 October 2026.</li>
+        <li>Bathymetry: NOAA NCEI DEM Global Mosaic, retrieved 13 October 2026; Allen Coral Atlas satellite-derived bathymetry, downloaded 3 November 2026, © Allen Coral Atlas Partnership and Arizona State University, CC BY 4.0.</li>
         <li>Reef monitoring: Atlantic and Gulf Rapid Reef Assessment (AGRRA) public data services; contributors include Healthy Reefs for Healthy People and Fragments of Hope.</li>
         <li>Live imagery: NASA Global Imagery Browse Services (GIBS).</li>
         <li>Basemaps: Esri World Imagery, Esri Ocean base and reference, OpenStreetMap<span class="local-only">; Google satellite (viewing only, not for published figures)</span>.</li>
       </ul>
       <p>Dogliotti, A. I., Ruddick, K. G., Nechad, B., Doxaran, D. and Knaeps, E. (2015). A single algorithm to retrieve turbidity from remotely-sensed data in all coastal and estuarine waters. <i>Remote Sensing of Environment</i> 156: 157 to 168.</p>
+      <p>Li, J., Knapp, D. E., Lyons, M., Roelfsema, C., Phinn, S., Schill, S. R. and Asner, G. P. (2021). Automated global shallow water bathymetry mapping using Google Earth Engine. <i>Remote Sensing</i> 13: 1469.</p>
       <p style="color:var(--muted);font-size:12px"><span class="local-only">Requires an internet connection for basemaps and live layers; the thematic layers are stored in the <code>data</code> folder.</span><span class="web-only">Hosted on GitHub Pages. Shortlists and notes are saved only in your own browser; use Export CSV in the Shortlist tab to share them.</span></p>
     </section>
   </aside>
@@ -306,6 +307,7 @@ body.web .local-only{display:none}body:not(.web) .web-only{display:none}
 <script src="data/water.js"></script>
 <script src="data/revised.js"></script>
 <script src="data/bathy.js"></script>
+<script src="data/aca_bathy.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -360,12 +360,30 @@
   document.getElementById('liveOp').addEventListener('input', (e) => liveLayer && liveLayer.setOpacity(+e.target.value));
   refreshLive();
 
-  // ---------- bathymetry (regional grid, about 460 m) ----------
-  const BA = window.BATHY;
+  // ---------- bathymetry: regional grid (about 460 m) with Allen Coral Atlas satellite depth (10 m data) on top ----------
+  const BA = window.BATHY, AB = window.ACA_BATHY;
   map.createPane('bathy').style.zIndex = 300;
+  map.getPane('bathy').style.opacity = 0.8; // both images are composited first, so the detailed layer fully replaces the regional one where present
   map.createPane('iso').style.zIndex = 412;
-  const bathyImg = L.imageOverlay('data/bathymetry/bathy.png', BA.bounds, { pane: 'bathy', opacity: 0.8, interactive: false });
-  LYR.bathy = () => bathyImg;
+  const bathyImg = L.imageOverlay('data/bathymetry/bathy.png', BA.bounds, { pane: 'bathy', interactive: false });
+  const acaImg = AB ? L.imageOverlay('data/bathymetry/aca_bathy.png', AB.image_bounds, { pane: 'bathy', interactive: false }) : null;
+  LYR.bathy = lazy(() => L.layerGroup(acaImg ? [bathyImg, acaImg] : [bathyImg]));
+  let AGRID = null;
+  (async function loadSatDepth() {
+    if (!AB) return;
+    try {
+      const bin = Uint8Array.from(atob(AB.b64), (c) => c.charCodeAt(0));
+      const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate'));
+      AGRID = new Uint8Array(await new Response(ds).arrayBuffer());
+    } catch (e) { AGRID = null; }
+  })();
+  function satDepthAt(lat, lon) { // Allen Coral Atlas depth in meters (30 m cells), or null where not shown
+    if (!AGRID) return null;
+    const g = AB.grid, c = Math.floor((lon - g.x0) / g.dx), r = Math.floor((lat - g.y0) / g.dy);
+    if (c < 0 || r < 0 || c >= g.W || r >= g.H) return null;
+    const v = AGRID[r * g.W + c];
+    return v === AB.nodata ? null : v * AB.scale;
+  }
   const ISO_STYLE = (d) => d <= 2 ? { color: '#e8fbff', weight: 1, opacity: 0.8, dashArray: '2 3' } : d === 5 || d === 10 || d === 20 ? { color: '#ffffff', weight: 1.6, opacity: 0.95 } : d >= 100 ? { color: '#9ec9ff', weight: 1.1, opacity: 0.7 } : { color: '#d6f2ff', weight: 1, opacity: 0.8 };
   LYR.iso = lazy(() => L.geoJSON(BA.contours, {
     pane: 'iso', bubblingMouseEvents: false, style: (f) => ISO_STYLE(f.properties.depth),
@@ -386,10 +404,11 @@
     return z < 0 ? -z : null;
   }
   function depthHTML(lat, lon, label, onReef) {
-    const d = depthAt(lat, lon);
-    const warn = onReef && d != null && d > 15
+    const d = depthAt(lat, lon), s = satDepthAt(lat, lon);
+    const sat = s == null ? '' : `<div class="k">${label ? label.replace('Regional depth', 'Satellite depth') : 'Satellite depth'}</div><div class="v">about ${s.toFixed(1)} m <span style="color:var(--muted);font-size:11px">(Allen Coral Atlas, 10 m data; typically within about 2 m in clear water, not yet checked locally)</span></div>`;
+    const warn = s == null && onReef && d != null && d > 15
       ? '<div style="font-size:11px;color:#ffb36b;margin-top:2px">This point lies on reef mapped by the Allen Coral Atlas, which maps to about 10 to 15 m, so the actual depth is likely shallower. The coarse grid is averaging in deeper water nearby.</div>' : '';
-    return `<div class="k">${label || 'Regional depth'}</div><div class="v">${d == null ? 'land or shoreline in the coarse grid' : `about ${d < 10 ? d.toFixed(1) : Math.round(d)} m`} <span style="color:var(--muted);font-size:11px">(regional grid of about 460 m; reef tops and channels are not resolved)</span>${warn}</div>`;
+    return sat + `<div class="k">${label || 'Regional depth'}</div><div class="v">${d == null ? 'land or shoreline in the coarse grid' : `about ${d < 10 ? d.toFixed(1) : Math.round(d)} m`} <span style="color:var(--muted);font-size:11px">(regional grid of about 460 m; reef tops and channels are not resolved)</span>${warn}</div>`;
   }
 
   // ---------- AGRRA reef monitoring ----------
@@ -769,7 +788,7 @@
       ['freq', false, 'How often it’s murky (sea)', 'Share of clear-sky days above 5 FNU · uses season and opacity below', sw('linear-gradient(90deg,rgba(255,230,150,.4),#f06420,#78002a)')]
     ],
     'lyr-depth': [
-      ['bathy', false, 'Bathymetry (color)', 'Regional depth grid, about 460 m cells · NOAA NCEI DEM Global Mosaic', sw('linear-gradient(90deg,#d6f4fa,#58b6de,#1c58a0,#051234)')],
+      ['bathy', false, 'Bathymetry (color)', 'Allen Coral Atlas satellite depth (10 m data) on reefs and seagrass in clear water down to 15 m, over the NOAA regional grid of about 460 m', sw('linear-gradient(90deg,#d6f4fa,#58b6de,#1c58a0,#051234)')],
       ['iso', false, 'Depth contours', '2, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000 m · hover for depth', sw('transparent', 'border-top:2px solid #fff;height:6px;border-radius:0')]
     ],
     'lyr-agrra': [
