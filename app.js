@@ -405,7 +405,7 @@
   }
   function depthHTML(lat, lon, label, onReef) {
     const d = depthAt(lat, lon), s = satDepthAt(lat, lon);
-    const sat = s == null ? '' : `<div class="k">${label ? label.replace('Regional depth', 'Satellite depth') : 'Satellite depth'}</div><div class="v">about ${s.toFixed(1)} m <span style="color:var(--muted);font-size:11px">(Allen Coral Atlas, 10 m data; typically within about 2 m in clear water, not yet checked locally)</span></div>`;
+    const sat = s == null ? '' : `<div class="k">${label ? label.replace('Regional depth', 'Satellite depth') : 'Satellite depth'}</div><div class="v">about ${s.toFixed(1)} m <span style="color:var(--muted);font-size:11px">(Allen Coral Atlas, 10 m data)</span></div>`;
     const warn = s == null && onReef && d != null && d > 15
       ? '<div style="font-size:11px;color:#ffb36b;margin-top:2px">This point lies on reef mapped by the Allen Coral Atlas, which maps to about 10 to 15 m, so the actual depth is likely shallower. The coarse grid is averaging in deeper water nearby.</div>' : '';
     return sat + `<div class="k">${label || 'Regional depth'}</div><div class="v">${d == null ? 'land or shoreline in the coarse grid' : `about ${d < 10 ? d.toFixed(1) : Math.round(d)} m`} <span style="color:var(--muted);font-size:11px">(regional grid of about 460 m; reef tops and channels are not resolved)</span>${warn}</div>`;
@@ -788,7 +788,7 @@
       ['freq', false, 'How often it’s murky (sea)', 'Share of clear-sky days above 5 FNU · uses season and opacity below', sw('linear-gradient(90deg,rgba(255,230,150,.4),#f06420,#78002a)')]
     ],
     'lyr-depth': [
-      ['bathy', false, 'Bathymetry (color)', 'Allen Coral Atlas satellite depth (10 m data) on reefs and seagrass in clear water down to 15 m, over the NOAA regional grid of about 460 m', sw('linear-gradient(90deg,#d6f4fa,#58b6de,#1c58a0,#051234)')],
+      ['bathy', false, 'Bathymetry (color)', 'Allen Coral Atlas satellite depth (10 m data) on reefs and seagrass in clear water down to 15 m, over the NOAA regional grid of about 460 m', sw('linear-gradient(90deg,#e6dc8e,#56b6c3,#2b58a0,#120e2c)'), '<div style="width:100%"><div style="height:8px;border-radius:3px;background:linear-gradient(90deg,#e6dc8e 0%,#a6d6ac 16.7%,#56b6c3 33.3%,#2f8abd 50%,#2b58a0 66.7%,#2b3170 83.3%,#1b153f 100%)"></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px"><span>0</span><span>2</span><span>5</span><span>10</span><span>20</span><span>50</span><span>200+ m</span></div></div>'],
       ['iso', false, 'Depth contours', '2, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000 m · hover for depth', sw('transparent', 'border-top:2px solid #fff;height:6px;border-radius:0')]
     ],
     'lyr-agrra': [
