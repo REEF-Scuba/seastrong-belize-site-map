@@ -366,8 +366,17 @@
   map.getPane('bathy').style.opacity = 0.8; // both images are composited first, so the detailed layer fully replaces the regional one where present
   map.createPane('iso').style.zIndex = 412;
   const bathyImg = L.imageOverlay('data/bathymetry/bathy.png', BA.bounds, { pane: 'bathy', interactive: false });
-  const acaImg = AB ? L.imageOverlay('data/bathymetry/aca_bathy.png', AB.image_bounds, { pane: 'bathy', interactive: false }) : null;
-  LYR.bathy = lazy(() => L.layerGroup(acaImg ? [bathyImg, acaImg] : [bathyImg]));
+  // Satellite depth as map tiles (10 m detail; only tiles that contain data are requested)
+  const EMPTY_TILE = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  const TILESET = AB ? new Set(AB.tiles) : null;
+  const SatDepthTiles = L.TileLayer.extend({
+    getTileUrl(c) {
+      const key = `${this._getZoomForUrl()}_${c.x}_${c.y}`;
+      return TILESET.has(key) ? `data/bathymetry/tiles/${key}.png` : EMPTY_TILE;
+    }
+  });
+  const acaTiles = AB ? new SatDepthTiles('', { pane: 'bathy', tileSize: AB.tile_size, zoomOffset: AB.zoom_offset, minNativeZoom: AB.min_zoom, maxNativeZoom: AB.max_zoom, maxZoom: 20, bounds: L.latLngBounds(AB.bounds), interactive: false }) : null;
+  LYR.bathy = lazy(() => L.layerGroup(acaTiles ? [bathyImg, acaTiles] : [bathyImg]));
   let AGRID = null;
   (async function loadSatDepth() {
     if (!AB) return;
